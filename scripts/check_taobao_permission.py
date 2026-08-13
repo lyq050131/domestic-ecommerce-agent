@@ -53,7 +53,8 @@ def main() -> int:
             print("[X] 探测失败：%s" % msg)
         return 2
 
-    items = (data.get("result_list") or {}).get("map_data") or []
+    resp = data.get("tbk_dg_material_optional_upgrade_response") or data
+    items = ((resp.get("result_list") or {}).get("map_data")) or []
     if not items:
         print("[OK] 权限已生效，但该关键词暂无联盟商品（可换关键词重试）。")
         return 0

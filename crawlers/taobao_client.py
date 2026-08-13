@@ -111,7 +111,10 @@ class TaobaoClient:
         need_free_shipment: bool = False,
         cat: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
-        """taobao.tbk.dg.material.optional.upgrade 物料搜索升级版（scope 27939）。"""
+        """taobao.tbk.dg.material.optional.upgrade 物料搜索升级版（scope 27939）。
+
+        真实返回包在 tbk_dg_material_optional_upgrade_response 内，需先解包。
+        """
         if not self.configured:
             raise RuntimeError("未配置淘宝客三要素（TAOBAO_APP_KEY / TAOBAO_APP_SECRET / TAOBAO_ADZONE_ID）")
         page_size = page_size or settings.TAOBAO_PAGE_SIZE
@@ -131,11 +134,24 @@ class TaobaoClient:
             biz["cat"] = str(cat)  # 商品类目ID，可显著提升按品类抓取的精确性
 
         data = self._request("taobao.tbk.dg.material.optional.upgrade", biz)
-        items = (data.get("result_list") or {}).get("map_data") or []
-        logger.info(f"淘宝物料搜索升级版 [{keyword}] 第 {page_no} 页返回 {len(items)} 条")
+        resp = data.get("tbk_dg_material_optional_upgrade_response") or data
+        items = ((resp.get("result_list") or {}).get("map_data")) or []
+        logger.info(
+            f"淘宝物料搜索升级版 [{keyword}] 第 {page_no} 页返回 {len(items)} 条"
+            f"（total_results={resp.get('total_results')}）"
+        )
         return items
 
     # ---------- 字段解析 ----------
+    @staticmethod
+    def _path_list(path_raw: Any) -> List[Dict[str, Any]]:
+        """兼容到手价优惠路径的两种真实结构：数组 或 {"final_promotion_path_map_data":[...]}"""
+        if isinstance(path_raw, dict):
+            return path_raw.get("final_promotion_path_map_data") or []
+        if isinstance(path_raw, list):
+            return path_raw
+        return []
+
     def parse_material_item(self, item: Dict[str, Any]) -> Dict[str, Any]:
         """升级版接口嵌套字段对齐 + 佣金换算。
 
@@ -161,14 +177,23 @@ class TaobaoClient:
 
         # 商品券金额：到手价路径中 "商品券" 优惠金额累加（升级版无顶层 coupon_amount）
         coupon_amount = float(item.get("coupon_amount") or 0)
-        for promo in price_info.get("final_promotion_path_list") or []:
+        for promo in self._path_list(price_info.get("final_promotion_path_list")):
             if str(promo.get("promotion_title") or "") == "商品券":
                 coupon_amount += float(promo.get("promotion_fee") or 0)
 
+        # 销量：volume（30天销量）实测恒为 0，改用 tk_total_sales（淘客30天推广量）作为销量代理
         volume = int(basic.get("volume") or item.get("volume") or 0)
+        if volume <= 0:
+            volume = int(float(basic.get("tk_total_sales") or 0))
 
-        # 佣金率：升级版为百分比（如 55 = 55%）；兼容旧版万分比（>100 时折算）
-        commission_rate_raw = float(income_info.get("commission_rate") or item.get("commission_rate") or 0)
+        # 佣金/收入比率：实测 income_info.commission_rate 常为空，主用 publish_info.income_rate（%）
+        # 兼容两种口径：百分比（如 55 = 55%）与万分比（>100 时折算）
+        commission_rate_raw = float(
+            income_info.get("commission_rate")
+            or publish_info.get("income_rate")
+            or item.get("commission_rate")
+            or 0
+        )
         if commission_rate_raw > 100:
             commission_rate_raw = commission_rate_raw / 100.0
         commission_rate_percent = round(commission_rate_raw, 2)
