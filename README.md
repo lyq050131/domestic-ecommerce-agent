@@ -8,11 +8,11 @@
 > 本版仅保留真实店铺运营模式：数据源唯一为淘宝客真实 API，DeepSeek 为必填。
 > 未配置密钥或接口失败时明确报错，不生成、不使用任何模拟数据。
 
-## 运行截图
+## 运行效果（真实数据）
 
-![运行截图占位](docs/screenshots/demo_placeholder.svg)
+![运行效果展示](docs/screenshots/run_demo.svg)
 
-> 当前为占位图；将真实运行截图放入 `docs/screenshots/` 并替换本行图片引用即可。
+> 以上为 2026-08-13 淘宝客真实数据运行结果展示；重新运行后可更新 `docs/screenshots/run_demo.svg`。
 
 ## 核心能力
 - **选品 Agent**：基于淘宝客物料搜索的真实商品数据（价格/月销/佣金率/优惠券）→ 爆款指数 → 选品分析报告；

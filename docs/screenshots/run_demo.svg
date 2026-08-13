@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="860" viewBox="0 0 1280 860">
+  <defs>
+    <linearGradient id="hdr" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#1f6feb"/>
+      <stop offset="1" stop-color="#8250df"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="860" fill="#f6f8fa"/>
+  <rect x="0" y="0" width="1280" height="96" fill="url(#hdr)"/>
+  <text x="48" y="46" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="34" fill="#ffffff" font-weight="bold">国内电商店铺自动化运营智能体 · 真实运行展示</text>
+  <text x="48" y="80" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="18" fill="#dbe9ff">数据源：淘宝客物料搜索升级版（真实 API）· LLM：DeepSeek · 2026-08-13</text>
+
+  <!-- 选品 Agent -->
+  <rect x="40" y="120" width="1200" height="330" rx="14" fill="#ffffff" stroke="#d0d7de"/>
+  <text x="64" y="162" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="22" fill="#1f2328" font-weight="bold">① 选品 Agent · 无线蓝牙耳机（品类过滤后 3 款真实商品）</text>
+  <line x1="64" y1="178" x2="1216" y2="178" stroke="#eaeef2"/>
+  <text x="80" y="214" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="#57606a">商品</text>
+  <text x="720" y="214" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="#57606a">价格</text>
+  <text x="840" y="214" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="#57606a">月销</text>
+  <text x="960" y="214" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="#57606a">佣金率</text>
+  <text x="1100" y="214" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="#57606a">爆款分</text>
+  <line x1="64" y1="226" x2="1216" y2="226" stroke="#eaeef2"/>
+  <text x="80" y="258" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="#1f2328">音贝奇 Real1Pro 主动降噪入耳式</text>
+  <text x="720" y="258" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="#1f2328">¥109.9</text>
+  <text x="840" y="258" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="#1f2328">100</text>
+  <text x="960" y="258" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="#1f2328">1.5%</text>
+  <text x="1100" y="258" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="#1f883d" font-weight="bold">65.0</text>
+  <line x1="64" y1="270" x2="1216" y2="270" stroke="#f0f2f5"/>
+  <text x="80" y="302" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="#1f2328">无线蓝牙耳机 2026 新款游戏降噪电竞款</text>
+  <text x="720" y="302" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="#1f2328">¥29.8</text>
+  <text x="840" y="302" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="#1f2328">100</text>
+  <text x="960" y="302" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="#1f2328">0.75%</text>
+  <text x="1100" y="302" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="#1f883d" font-weight="bold">43.6</text>
+  <line x1="64" y1="314" x2="1216" y2="314" stroke="#f0f2f5"/>
+  <text x="80" y="346" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="#1f2328">真无线蓝牙耳机 2026 新款电竞游戏款</text>
+  <text x="720" y="346" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="#1f2328">¥16.6</text>
+  <text x="840" y="346" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="#1f2328">100</text>
+  <text x="960" y="346" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="#1f2328">0.45%</text>
+  <text x="1100" y="346" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="#1f883d" font-weight="bold">35.0</text>
+  <line x1="64" y1="360" x2="1216" y2="360" stroke="#f0f2f5"/>
+  <text x="80" y="396" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="#57606a">结论：池内佣金率普遍偏低（0.45%–1.5%）、无优惠券 → 新商家以 15%–20% 佣金 + ¥15–¥20 券切入最具机会</text>
+  <text x="80" y="428" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="#0969da">报告质量门控 0.80 通过 → 已回流爆款知识库</text>
+
+  <!-- 投放优化 Agent -->
+  <rect x="40" y="470" width="1200" height="230" rx="14" fill="#ffffff" stroke="#d0d7de"/>
+  <text x="64" y="512" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="22" fill="#1f2328" font-weight="bold">② 投放优化 Agent · 44 款真实商品 / 8 个关键词</text>
+  <line x1="64" y1="528" x2="1216" y2="528" stroke="#eaeef2"/>
+  <text x="80" y="566" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="#1f2328">Top 关键词潜力分：手机支架 506.1 · 运动手环 503.0 · 蓝牙音箱 457.5 · 智能手表 450.0 · 数据线 416.7</text>
+  <text x="80" y="598" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="#1f2328">平均佣金率 2.1%（偏低）· 累计预估佣金 ¥48.54 · 高佣品类：手机支架 13%</text>
+  <text x="80" y="630" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="#57606a">策略要点：智能手表/数据线“有词无品”最优先补品；手机支架扩长尾词；蓝牙音箱挖高佣刚需场景</text>
+  <text x="80" y="662" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="#57606a">策略质量门控 0.56（未达 0.75 阈值，按设计不入库）</text>
+
+  <!-- 闭环 -->
+  <rect x="40" y="720" width="1200" height="110" rx="14" fill="#ffffff" stroke="#d0d7de"/>
+  <text x="64" y="762" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="22" fill="#1f2328" font-weight="bold">③ 自反馈闭环（RAG 知识库）</text>
+  <line x1="64" y1="778" x2="1216" y2="778" stroke="#eaeef2"/>
+  <text x="80" y="812" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="#1f2328">爆款知识库 1 条（选品报告入库）· 投放策略库 0 条 · 客服 FAQ 0 条 · 质量门控 → 相似度去重 → 向量化回流</text>
+</svg>

@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
-  <rect width="1280" height="720" fill="#f6f8fa"/>
-  <rect x="40" y="40" width="1200" height="640" rx="16" fill="#ffffff" stroke="#d0d7de" stroke-width="2"/>
-  <text x="640" y="280" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="46" fill="#24292f" text-anchor="middle" font-weight="bold">国内电商店铺自动化运营智能体</text>
-  <text x="640" y="345" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="30" fill="#57606a" text-anchor="middle">v3.1 真实店铺运营版 · 运行截图占位</text>
-  <text x="640" y="430" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="22" fill="#8c959f" text-anchor="middle">选品分析 | 投放优化 | 多语言客服 | 自反馈知识闭环</text>
-  <text x="640" y="600" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="18" fill="#afb8c1" text-anchor="middle">将真实截图放入 docs/screenshots/ 并替换本占位图</text>
-</svg>
