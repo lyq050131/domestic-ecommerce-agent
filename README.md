@@ -1,0 +1,93 @@
+# 国内电商店铺自动化运营智能体（v3.1 真实店铺运营版）
+
+接入**真实淘宝平台（淘宝客 API）** + **DeepSeek 大模型**的电商运营智能体：
+选品分析、推广优化、多语言客服、自反馈知识闭环。**配置好密钥即直接用于真实店铺运营**。
+
+> 本版仅保留真实店铺运营模式：数据源唯一为淘宝客真实 API，DeepSeek 为必填。
+> 未配置密钥或接口失败时明确报错，不生成、不使用任何模拟数据。
+
+## 核心能力
+- **选品 Agent**：基于淘宝客物料搜索的真实商品数据（价格/月销/佣金率/优惠券）→ 爆款指数 → 选品分析报告；
+- **投放优化 Agent**：按关键词抓取淘宝联盟推广商品，用「佣金率 × 月销」推广潜力分输出优化方案；
+- **多语言客服 Agent**：预置 FAQ 模板锁定业务口径，DeepSeek 结合评论/私信细节个性化回复；
+- **自反馈闭环**：质量门控 → 去重 → 向量回流 → 容量控制（可选 RAG，未装依赖自动跳过）。
+
+## 快速开始
+```bash
+# 1. 安装依赖
+pip install -r requirements.txt
+
+# 2. 配置密钥（必填）
+copy .env.example .env    # Windows
+# cp .env.example .env     # Linux/macOS
+# 填写：TAOBAO_APP_KEY / TAOBAO_APP_SECRET / TAOBAO_ADZONE_ID / LLM_API_KEY
+
+# 3. 运行（交互式）
+python main.py
+
+# 4. 运行 API 服务
+uvicorn api.app:app --reload
+```
+
+## 淘宝接入资质（必做）
+1. 注册 [淘宝开放平台](https://open.taobao.com) 开发者，创建**自用型应用**获取 `AppKey / AppSecret`；
+2. 开通 [阿里妈妈淘宝联盟](https://pub.alimama.com) 推广位，获取 PID（`mm_站点_广告位_推广`）；
+3. `TAOBAO_ADZONE_ID` 填 PID 最后一段数字；
+4. 物料搜索使用升级版接口 `taobao.tbk.dg.material.optional.upgrade`，需在淘宝联盟开放平台申请权限包「淘宝客【推广者】商品物料获取」（scope 27939）；免 OAuth、免付费。
+
+> 订单结算接口（`taobao.tbk.order.details.get`）为付费/需商家权限，默认关闭（`TAOBAO_ORDER_ENABLED=false`）。
+
+## 目录结构
+```
+domestic_ecommerce_agent_taobao/
+├── .env.example          # 环境变量模板（必填项标注）
+├── requirements.txt      # 依赖清单
+├── main.py               # 交互式入口（启动时校验配置）
+├── start.bat / start_api.bat
+├── config/settings.py    # 全局配置（全部来自 .env，含启动校验）
+├── crawlers/
+│   ├── taobao_client.py        # 淘宝客 TOP 网关：签名 + 请求 + 解析
+│   ├── competitor_crawler.py   # 竞品数据（真实淘宝客数据源）
+│   └── ad_data_crawler.py      # 推广数据 + 可选订单
+├── agents/
+│   ├── base_agent.py           # LLM 基类（DeepSeek 必填）
+│   ├── product_selection_agent.py
+│   ├── ad_optimization_agent.py
+│   └── customer_service_agent.py
+├── retrieval/            # 向量库(可选) / 质量门控 / 自反馈闭环
+├── utils/                # 翻译 / 日志 / 数据处理
+├── api/app.py            # FastAPI 服务
+└── data/templates/reply_templates.json   # 客服预置模板
+```
+
+
+## Windows 部署（本机 D 盘已验证）
+```powershell
+# 已就绪：D:\domestic_ecommerce_agent_taobao（含 .venv 虚拟环境）
+cd D:\domestic_ecommerce_agent_taobao
+
+# 1. 填写密钥（必填，缺失时启动会明确报错）
+notepad .env
+#   TAOBAO_APP_KEY / TAOBAO_APP_SECRET / TAOBAO_ADZONE_ID / LLM_API_KEY
+
+# 2. 交互式运行（或双击 start.bat）
+.\.venv\Scripts\python.exe main.py
+
+# 3. API 服务（或双击 start_api.bat），Swagger 文档: http://127.0.0.1:8000/docs
+.\.venv\Scripts\python.exe -m uvicorn api.app:app --reload --port 8000
+```
+> 本机系统 `python` 为应用商店占位符，请统一使用项目内 `.venv\Scripts\python.exe`。
+
+## API 摘要
+- `POST /api/v1/selection/analyze` 选品分析
+- `POST /api/v1/ad/optimize` 推广优化
+- `POST /api/v1/cs/review` 评论回复
+- `POST /api/v1/cs/message` 私信回复
+- `GET /api/v1/loop/stats` 闭环统计
+- `GET /api/v1/system/status` 系统状态（不含密钥）
+
+## 合规与边界
+- 代码中不写死任何密钥，全部从 `.env` 读取，启动时校验缺失项；
+- 只生成选品结论、推广方案、客服回复文本，**不自动下单、不自动发布**（由运营者确认后执行）；
+- 不承诺收益，佣金/ROI 为估算口径，以淘宝联盟实际结算为准；
+- 遵守淘宝开放平台与阿里妈妈联盟协议。

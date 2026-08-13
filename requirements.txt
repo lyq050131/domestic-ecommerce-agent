@@ -1,0 +1,17 @@
+# ===== 核心依赖 =====
+openai>=1.30.0          # DeepSeek/OpenAI 兼容大模型调用
+requests>=2.31.0        # 淘宝 TOP 网关请求
+pandas>=2.0.0           # 数据处理
+loguru>=0.7.0           # 日志
+python-dotenv>=1.0.0    # .env 配置
+deep-translator>=1.11.0 # 多语言翻译（可选，缺失时自动降级）
+langdetect>=1.0.9       # 语言检测（可选，缺失时自动降级）
+
+# ===== API 服务（可选） =====
+fastapi>=0.110.0
+uvicorn>=0.29.0
+pydantic>=2.6.0
+
+# ===== RAG 向量库（可选：安装后启用自反馈闭环检索；不装自动降级为无 RAG 模式） =====
+# chromadb>=0.5.0
+# sentence-transformers>=2.6.0

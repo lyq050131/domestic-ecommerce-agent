@@ -1,0 +1,18 @@
+# 密钥与环境变量
+.env
+
+# 运行产物
+data/raw/
+logs/
+data/vector_db/
+data/output/
+data/processed/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# IDE
+.idea/
+.vscode/

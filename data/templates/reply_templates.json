@@ -1,0 +1,86 @@
+{
+  "version": "1.0",
+  "default_language": "zh",
+  "templates": [
+    {
+      "id": "price_compare",
+      "scenario": "比价咨询",
+      "keywords": ["便宜", "贵", "价格", "比其他", "划算", "优惠", "折扣", "price", "cheap", "expensive", "discount", "deal", "bargain", "más barato", "caro", "precio"],
+      "reply_zh": "您好～页面显示的券后价已经包含平台优惠，同款商品中我们的价格处于性价比区间，且支持7天无理由退换，您可以放心下单。若在别家看到更低价，欢迎截图发我，我为您核实是否有同规格优惠～",
+      "reply_en": "Hi! The price shown already includes the coupon discount, and we offer 7-day no-reason returns, so you can order with confidence. If you find a lower price elsewhere for the same model, feel free to send me a screenshot and I'll check it for you.",
+      "reply_es": "¡Hola! El precio mostrado ya incluye el descuento del cupón y ofrecemos devoluciones sin motivo en 7 días, así que puede pedir con confianza. Si encuentra un precio más bajo en otro lugar para el mismo modelo, envíeme una captura y lo verificaré."
+    },
+    {
+      "id": "shipping",
+      "scenario": "物流时效",
+      "keywords": ["多久到", "发货", "物流", "快递", "几天", "shipping", "delivery", "arrive", "when", "tracking", "envío", "entrega", "cuándo"],
+      "reply_zh": "您好～订单一般在48小时内发出，发出后可在订单页查看物流轨迹。偏远地区或大促期间时效可能延长1-3天，如有紧急需求可以告诉我订单号，我帮您催件～",
+      "reply_en": "Hi! Orders are usually shipped within 48 hours, and you can track the package on your order page. During sales events or for remote areas, delivery may take 1-3 extra days. If you're in a hurry, please share your order number and I'll help follow up.",
+      "reply_es": "¡Hola! Los pedidos suelen enviarse en 48 horas y puede seguir el paquete en su página de pedidos. Durante promociones o zonas remotas la entrega puede tardar 1-3 días más. Si tiene prisa, comparta su número de pedido y le ayudaré."
+    },
+    {
+      "id": "size_guide",
+      "scenario": "尺码/规格咨询",
+      "keywords": ["尺码", "大小", "尺寸", "多大", "合适", "size", "fit", "measure", "sizing", "talla", "medida", "cabe"],
+      "reply_zh": "您好～商品详情页有详细尺寸表和规格说明，建议对照自身需求选择。若在两个尺码之间犹豫，通常建议选大一码更稳妥；收到后不合适支持7天无理由退换哦～",
+      "reply_en": "Hi! The product page includes a detailed size chart and specs. If you're between two sizes, we usually recommend the larger one for a safer fit. If it doesn't fit, you're covered by our 7-day no-reason return policy.",
+      "reply_es": "¡Hola! La página del producto incluye una tabla de tallas y especificaciones. Si duda entre dos tallas, recomendamos elegir la más grande. Si no le queda bien, puede devolverlo sin motivo en 7 días."
+    },
+    {
+      "id": "damaged",
+      "scenario": "破损/质量问题",
+      "keywords": ["坏了", "破损", "裂", "坏了", "无法使用", "质量差", "broken", "damaged", "defective", "not working", "cracked", "roto", "dañado", "defectuoso"],
+      "reply_zh": "非常抱歉给您带来不好的体验！请您提供破损部位的照片或视频，我这边核实后会立即为您安排补发或退款。商品均支持售后保障，请放心，我们会负责到底～",
+      "reply_en": "We're truly sorry for the inconvenience! Please send a photo or video of the damaged part, and once verified, we'll arrange a replacement or refund right away. Your purchase is fully protected by our after-sales policy.",
+      "reply_es": "¡Lamentamos mucho las molestias! Por favor envíe una foto o video de la parte dañada y, una vez verificado, organizaremos un reemplazo o reembolso de inmediato. Su compra está protegida por nuestra política posventa."
+    },
+    {
+      "id": "refund",
+      "scenario": "退换货",
+      "keywords": ["退货", "退款", "退换", "退款", "return", "refund", "exchange", "money back", "devolución", "reembolso", "cambio"],
+      "reply_zh": "您好～商品支持7天无理由退换（保持商品完好即可）。您可在订单页发起售后申请，审核通过后按指引寄回，退款将在仓库签收后1-3个工作日原路退回。如有疑问随时找我～",
+      "reply_en": "Hi! This item supports 7-day no-reason returns (item must be in original condition). You can submit an after-sales request on your order page; once approved, refunds are processed within 1-3 business days after the warehouse receives the return. Feel free to ask anytime!",
+      "reply_es": "¡Hola! Este artículo admite devoluciones sin motivo en 7 días (debe estar en su estado original). Puede solicitar la posventa en su página de pedidos; una vez aprobada, el reembolso se procesa en 1-3 días hábiles tras recibir la devolución. ¡Pregunte cuando quiera!"
+    },
+    {
+      "id": "stock_preorder",
+      "scenario": "缺货/预售",
+      "keywords": ["没货", "缺货", "预售", "什么时候有货", "补货", "out of stock", "preorder", "restock", "available", "agotado", "preventa", "reabastecer"],
+      "reply_zh": "您好～该款目前正在补货/预售中，预计X天内发出，您可以先下单锁定库存，到货后我们会按付款顺序优先发出。感谢耐心等待～",
+      "reply_en": "Hi! This item is currently being restocked / on pre-order and is expected to ship within X days. You can place an order now to secure your unit; we'll ship in payment order once stock arrives. Thanks for your patience!",
+      "reply_es": "¡Hola! Este artículo está en reposición / preventa y se espera que se envíe en X días. Puede pedir ahora para reservar su unidad; enviaremos en orden de pago cuando llegue el stock. ¡Gracias por su paciencia!"
+    },
+    {
+      "id": "praise",
+      "scenario": "好评感谢",
+      "keywords": ["好用", "满意", "很棒", "推荐", "great", "love", "amazing", "perfect", "excellent", "bien", "genial", "excelente", "encantado"],
+      "reply_zh": "感谢您的好评与认可～您的满意是我们最大的动力！欢迎分享给需要的朋友，后续有任何问题随时联系我们，期待您的再次光临～",
+      "reply_en": "Thank you so much for your kind words! Your satisfaction means the world to us. Feel free to share us with friends, and don't hesitate to reach out anytime. We look forward to serving you again!",
+      "reply_es": "¡Muchas gracias por sus amables palabras! Su satisfacción es nuestra mayor motivación. No dude en recomendarnos y contáctenos cuando quiera. ¡Esperamos atenderle de nuevo!"
+    },
+    {
+      "id": "bad_review",
+      "scenario": "差评道歉",
+      "keywords": ["差", "垃圾", "后悔", "骗", "失望", "再也不", "terrible", "awful", "waste", "disappointed", "never again", "pésimo", "terrible", "decepcionado"],
+      "reply_zh": "非常抱歉给您带来了不好的体验！我们非常重视您的反馈，请您私信提供订单号与具体问题，我们会第一时间核实并给您满意的处理方案（补发/退款/补偿均可协商）。您的意见我们已记录并用于改进，感谢您的反馈～",
+      "reply_en": "We're truly sorry for your experience! Your feedback matters a lot to us. Please message us with your order number and the specific issue, and we'll verify and provide a satisfactory solution (replacement/refund/compensation are all open to discussion). Your input has been noted for improvement. Thank you for telling us!",
+      "reply_es": "¡Lamentamos mucho su experiencia! Su opinión es muy importante para nosotros. Por favor escríbanos con su número de pedido y el problema específico, y lo verificaremos para darle una solución satisfactoria (reemplazo/reembolso/compensación son posibles). Hemos registrado su comentario para mejorar. ¡Gracias por avisarnos!"
+    },
+    {
+      "id": "after_sale",
+      "scenario": "售后咨询",
+      "keywords": ["售后", "保修", "维修", "客服", "支持", "after-sales", "warranty", "support", "help", "repair", "posventa", "garantía", "soporte", "ayuda"],
+      "reply_zh": "您好～本店提供完善的售后服务：商品支持7天无理由退换，质量问题30天内可免费换新。您可直接在订单页申请售后，或把订单号和问题发给我，我为您跟进处理～",
+      "reply_en": "Hi! We provide complete after-sales support: 7-day no-reason returns and free replacement within 30 days for quality issues. You can submit a request on your order page, or send me your order number and issue and I'll follow up for you!",
+      "reply_es": "¡Hola! Ofrecemos soporte posventa completo: devoluciones sin motivo en 7 días y reemplazo gratuito en 30 días por problemas de calidad. Puede solicitar en su página de pedidos o enviarme su número de pedido y problema, ¡y lo gestionaré por usted!"
+    },
+    {
+      "id": "general",
+      "scenario": "通用咨询",
+      "keywords": ["你好", "在吗", "请问", "你好", "hello", "hi", "hey", "question", "help", "hola", "pregunta"],
+      "reply_zh": "您好～很高兴为您服务！请告诉我您的具体问题（订单号/商品名/需求），我会尽快为您解答～",
+      "reply_en": "Hi there! I'm happy to help! Please tell me your specific question (order number / product / request) and I'll get back to you as soon as possible.",
+      "reply_es": "¡Hola! ¡Encantado de ayudarle! Cuénteme su pregunta concreta (número de pedido / producto / solicitud) y le responderé lo antes posible."
+    }
+  ]
+}
