@@ -467,10 +467,14 @@ async def auto_launch(request: AutoLaunchRequest):
         if request.push_dingtalk:
             sent = dingtalk.send_launch_links(datetime.now().strftime("%Y-%m-%d"), category, links)
         logger.info("========== 自动投放流水线完成 ==========")
+        links_by_source = {"选品": [], "投放": []}
+        for l in links:
+            links_by_source.setdefault(l["source"], []).append(l)
         return {"code": 0, "message": "success", "data": {
             "category": category,
             "report_ids": {"selection": rid_sel, "ad": rid_ad},
             "links": links,
+            "links_by_source": links_by_source,
             "link_count": len(links),
             "dingtalk_sent": sent,
         }}
