@@ -671,6 +671,7 @@ async function loadProducts(){
     const off=(pPage-1)*pLimit;
     const url='/api/v1/products?limit='+pLimit+'&offset='+off+'&status='+encodeURIComponent(status)+'&source='+encodeURIComponent(source)+'&q='+encodeURIComponent(q);
     const d=await api(url,null);
+    pTotal=d.total;
     const st=d.stats||{};
     $('pStats').innerHTML='共 '+d.total+' 件 ｜ '
       +P_STATUSES.map(s=>'<span class="chip'+(s==='待投放'?' chip-hot':'')+'">'+s+' '+(st[s]||0)+'</span>').join(' ');
