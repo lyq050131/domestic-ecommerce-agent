@@ -21,6 +21,8 @@ textarea{width:100%;min-height:70px;resize:vertical}
 button{background:var(--primary);color:#fff;border:0;border-radius:8px;padding:9px 18px;font-size:14px;cursor:pointer}
 button:hover{opacity:.9}
 button:disabled{opacity:.5;cursor:not-allowed}
+.btn-sm{background:#fff;color:var(--primary);border:1px solid var(--primary);border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer}
+.btn-sm:hover{background:#e8f0fe;opacity:1}
 pre{background:#0d1117;color:#c9d1d9;border-radius:10px;padding:14px;overflow:auto;white-space:pre-wrap;word-break:break-word;font-size:13px;line-height:1.6;max-height:560px}
 .hidden{display:none}
 #statusBar{display:flex;gap:18px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted)}
@@ -65,6 +67,11 @@ pre{background:#0d1117;color:#c9d1d9;border-radius:10px;padding:14px;overflow:au
       <button id="btnSel">开始分析（约1-2分钟）</button>
     </div>
     <div id="selLoading" class="hidden loading">⏳ 正在抓取淘宝真实数据并生成报告，请稍候…</div>
+    <div class="row hidden" id="selExport">
+      <button class="btn-sm" id="selMdBtn">⬇ 导出 Markdown</button>
+      <button class="btn-sm" id="selHtmlBtn">⬇ 导出 HTML</button>
+      <button class="btn-sm" id="selPrintBtn">🖨 打印 / 另存为 PDF</button>
+    </div>
     <div class="md hidden" id="selReport"></div>
   </section>
 
@@ -75,6 +82,11 @@ pre{background:#0d1117;color:#c9d1d9;border-radius:10px;padding:14px;overflow:au
       <button id="btnAd">开始优化（约1分钟）</button>
     </div>
     <div id="adLoading" class="hidden loading">⏳ 正在抓取 10 个关键词真实数据并生成方案…</div>
+    <div class="row hidden" id="adExport">
+      <button class="btn-sm" id="adMdBtn">⬇ 导出 Markdown</button>
+      <button class="btn-sm" id="adHtmlBtn">⬇ 导出 HTML</button>
+      <button class="btn-sm" id="adPrintBtn">🖨 打印 / 另存为 PDF</button>
+    </div>
     <div class="md hidden" id="adReport"></div>
   </section>
 
@@ -86,6 +98,11 @@ pre{background:#0d1117;color:#c9d1d9;border-radius:10px;padding:14px;overflow:au
       <button id="btnCs">生成回复</button>
     </div>
     <div id="csLoading" class="hidden loading">⏳ 正在生成回复…</div>
+    <div class="row hidden" id="csExport">
+      <button class="btn-sm" id="csMdBtn">⬇ 导出 Markdown</button>
+      <button class="btn-sm" id="csHtmlBtn">⬇ 导出 HTML</button>
+      <button class="btn-sm" id="csPrintBtn">🖨 打印 / 另存为 PDF</button>
+    </div>
     <div class="md hidden" id="csReport"></div>
   </section>
 
@@ -162,6 +179,30 @@ function mdRender(src){
   return html;
 }
 function showMd(el,text){el.innerHTML=mdRender(text);el.classList.remove('hidden');}
+const MD_CSS='body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;max-width:900px;margin:24px auto;padding:0 20px;color:#1f2328;line-height:1.75;font-size:14px}.print h1,.print h2{font-size:18px;margin:16px 0 8px;padding-bottom:6px;border-bottom:1px solid #eaeef2}.print h3{font-size:15px;margin:12px 0 6px}.print p{margin:6px 0}.print ul,.print ol{margin:6px 0;padding-left:24px}.print table{border-collapse:collapse;margin:8px 0;width:100%;font-size:13px}.print th,.print td{border:1px solid #d0d7de;padding:6px 10px;text-align:left}.print th{background:#f6f8fa}.print code{background:#eff1f3;border-radius:4px;padding:1px 5px;font-size:12px}.print pre.code{background:#0d1117;color:#c9d1d9;padding:12px;border-radius:8px;overflow:auto}.print blockquote{border-left:3px solid #d0d7de;margin:8px 0;padding:2px 12px;color:#57606a}.print hr{border:0;border-top:1px solid #eaeef2;margin:14px 0}.print a{color:#1f6feb}@media print{body{margin:0;padding:0}}';
+let selMd=null,adMd=null,csMd=null;
+function todayStr(){return new Date().toISOString().slice(0,10).replace(/-/g,'');}
+function download(filename,content,mime){
+  const blob=new Blob([content],{type:mime+';charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=filename;
+  document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},200);
+}
+function exportMd(prefix,md){if(!md){toast('❌ 请先生成报告');return;}download(prefix+'_'+todayStr()+'.md',md,'text/markdown');}
+function exportHtml(prefix,md){
+  if(!md){toast('❌ 请先生成报告');return;}
+  const html='<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><title>'+prefix+'</title><style>'+MD_CSS+'</style></head><body class="print">'+mdRender(md)+'</body></html>';
+  download(prefix+'_'+todayStr()+'.html',html,'text/html');
+}
+function printReport(md){
+  if(!md){toast('❌ 请先生成报告');return;}
+  const w=window.open('','_blank');
+  if(!w){toast('❌ 浏览器拦截了弹出窗口，请允许后重试');return;}
+  w.document.write('<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><title>运营报告</title><style>'+MD_CSS+'</style></head><body class="print">'+mdRender(md)+'</body></html>');
+  w.document.close();w.focus();
+  setTimeout(()=>{try{w.print();}catch(e){toast('⚠️ 请在新窗口手动打印');}},400);
+}
 async function api(url,body){
   const opt={method:body?'POST':'GET',headers:{'Content-Type':'application/json'}};
   if(body)opt.body=JSON.stringify(body);
@@ -181,25 +222,39 @@ async function run(loading,btn,fn){
 }
 $('btnSel').onclick=()=>run($('selLoading'),$('btnSel'),async()=>{
   const d=await api('/api/v1/selection/analyze',{category:$('selCategory').value.trim()||'无线蓝牙耳机',count:parseInt($('selCount').value)||20});
-  showMd($('selReport'),`**【品类】** ${d.category}（真实数据 ${d.competitor_count} 款）｜闭环入库：${d.feedback_success?'✅ 成功':'未入库'}\n\n---\n\n${d.report}`);
+  selMd=`**【品类】** ${d.category}（真实数据 ${d.competitor_count} 款）｜闭环入库：${d.feedback_success?'✅ 成功':'未入库'}\n\n---\n\n${d.report}`;
+  $('selExport').classList.remove('hidden');
+  showMd($('selReport'),selMd);
 });
 $('btnAd').onclick=()=>run($('adLoading'),$('btnAd'),async()=>{
   const d=await api('/api/v1/ad/optimize',{top_n:parseInt($('adTopN').value)||15});
   const s=d.promotion_summary||{};
-  const head=`**【推广数据】** ${s.total??'-'} 款商品 ｜ 平均佣金 ${s.avg_commission??'-'}% ｜ 累计预估佣金 ¥${s.total_estimated_commission??'-'}\n\n---\n\n`;
-  showMd($('adReport'),head+d.strategy);
+  adMd=`**【推广数据】** ${s.total??'-'} 款商品 ｜ 平均佣金 ${s.avg_commission??'-'}% ｜ 累计预估佣金 ¥${s.total_estimated_commission??'-'}\n\n---\n\n${d.strategy}`;
+  $('adExport').classList.remove('hidden');
+  showMd($('adReport'),adMd);
 });
 $('btnCs').onclick=()=>run($('csLoading'),$('btnCs'),async()=>{
   const content=$('csContent').value.trim();
   if(!content){toast('❌ 请先输入评论/私信内容');return;}
   const rating=parseInt($('csRating').value);
   const d=rating?await api('/api/v1/cs/review',{content,rating}):await api('/api/v1/cs/message',{content});
-  showMd($('csReport'),`**【语言】** ${d.detected_language} ｜ 命中模板：${d.matched_template||'无'} ｜ 闭环：${d.feedback_success?'✅':'-'}\n\n---\n\n${d.reply}`);
+  csMd=`**【语言】** ${d.detected_language} ｜ 命中模板：${d.matched_template||'无'} ｜ 闭环：${d.feedback_success?'✅':'-'}\n\n---\n\n${d.reply}`;
+  $('csExport').classList.remove('hidden');
+  showMd($('csReport'),csMd);
 });
 $('btnLoop').onclick=()=>run($('loopLoading'),$('btnLoop'),async()=>{
   const d=await api('/api/v1/loop/stats',null);
   $('loopReport').textContent=JSON.stringify(d,null,2);$('loopReport').classList.remove('hidden');
 });
+$('selMdBtn').onclick=()=>exportMd('选品报告_'+($('selCategory').value.trim()||'无线蓝牙耳机'),selMd);
+$('selHtmlBtn').onclick=()=>exportHtml('选品报告_'+($('selCategory').value.trim()||'无线蓝牙耳机'),selMd);
+$('selPrintBtn').onclick=()=>printReport(selMd);
+$('adMdBtn').onclick=()=>exportMd('投放优化方案',adMd);
+$('adHtmlBtn').onclick=()=>exportHtml('投放优化方案',adMd);
+$('adPrintBtn').onclick=()=>printReport(adMd);
+$('csMdBtn').onclick=()=>exportMd('客服回复',csMd);
+$('csHtmlBtn').onclick=()=>exportHtml('客服回复',csMd);
+$('csPrintBtn').onclick=()=>printReport(csMd);
 api('/api/v1/system/status',null).then(setStatus).catch(e=>toast('❌ 状态获取失败：'+e.message));
 </script>
 </body>
