@@ -10,9 +10,15 @@
 
 ## 运行效果（真实数据）
 
-![运行效果展示](docs/screenshots/run_demo.svg)
+![Web 运营后台截图](docs/screenshots/dashboard.png)
 
-> 以上为 2026-08-13 淘宝客真实数据运行结果展示；重新运行后可更新 `docs/screenshots/run_demo.svg`。
+> 真实运行截图：Web 运营后台（选品 / 投放优化 / 多语言客服 / 自反馈闭环），访问 http://127.0.0.1:8000/ 即可使用。
+
+运行数据示意：
+
+![运行数据展示](docs/screenshots/run_demo.svg)
+
+> 数据为 2026-08-13 淘宝客真实接口运行结果；重新运行后可更新 `docs/screenshots/run_demo.svg`。
 
 ## 核心能力
 - **选品 Agent**：基于淘宝客物料搜索的真实商品数据（价格/月销/佣金率/优惠券）→ 爆款指数 → 选品分析报告；
