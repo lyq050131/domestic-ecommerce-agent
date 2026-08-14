@@ -1,8 +1,11 @@
-# ?????????????? - ???????
-# ???docker compose up -d --build
+# 国内电商店铺自动化运营智能体 - 阿里云部署编排
+# 用法：docker compose up -d --build
 services:
   app:
-    build: .
+    build:
+      context: .
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
     image: domestic-ecommerce-agent:latest
     container_name: domestic-ecommerce-agent
     restart: unless-stopped
@@ -13,11 +16,11 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      # ?????????/????/????
+      # 数据持久化：报告库/客服模板/导出文件
       - ./data:/app/data
-      # ??????loguru ??????? 7 ?
+      # 日志持久化：loguru 按天滚动，保留 7 天
       - ./logs:/app/logs
-      # ????
+      # 导出文档
       - ./storage:/app/storage
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=3)"]
