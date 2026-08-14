@@ -47,6 +47,9 @@ pre{background:#0d1117;color:#c9d1d9;border-radius:10px;padding:14px;overflow:au
 .settings-grid label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
 .settings-grid input[type=text],.settings-grid input[type=number],.settings-grid input[type=time]{width:100%}
 .settings-grid input[type=checkbox]{width:auto;margin-right:6px}
+.pager{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.pager-info{font-size:13px;color:var(--muted)}
+.pager select{border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-size:12px}
 select{border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:14px;font-family:inherit;background:#fff}
 .prod-table{border-collapse:collapse;width:100%;font-size:13px;margin-top:4px}
 .prod-table th,.prod-table td{border:1px solid #d0d7de;padding:6px 8px;text-align:left;vertical-align:top}
@@ -224,6 +227,7 @@ h3{font-size:15px;margin:14px 0 6px}
     <div id="pLoading" class="hidden loading">⏳ 正在加载商品库…</div>
     <div id="pStats" class="muted" style="margin-bottom:8px"></div>
     <div id="pTableWrap"></div>
+    <div id="pPager" class="pager hidden"></div>
   </section>
 
   <section class="card">
@@ -576,16 +580,27 @@ async function loadDashboard(){
     $('dashBody').classList.remove('hidden');
   }catch(e){toast('❌ 总览加载失败：'+e.message);}
 }
+let pPage=1,pLimit=20,pTotal=0;
+function renderPager(){
+  const pages=Math.max(1,Math.ceil(pTotal/pLimit));
+  const el=$('pPager');
+  if(pages<=1){el.classList.add('hidden');el.innerHTML='';return;}
+  el.classList.remove('hidden');
+  el.innerHTML='<button class="btn-sm pg-btn" data-page="'+(pPage-1)+'"'+(pPage<=1?' disabled':'')+'>◀ 上一页</button>'
+    +'<span class="pager-info">第 '+pPage+' / '+pages+' 页 ｜ 共 '+pTotal+' 条 ｜ 每页 <select id="pLimitSel">'+[10,20,50,100].map(n=>'<option value="'+n+'"'+(n===pLimit?' selected':'')+'>'+n+'</option>').join('')+'</select></span>'
+    +'<button class="btn-sm pg-btn" data-page="'+(pPage+1)+'"'+(pPage>=pages?' disabled':'')+'>下一页 ▶</button>';
+}
 async function loadProducts(){
   const status=$('pStatus').value,source=$('pSource').value,q=$('pQ').value.trim();
   await run($('pLoading'),$('btnProducts'),async()=>{
-    const url='/api/v1/products?limit=100&status='+encodeURIComponent(status)+'&source='+encodeURIComponent(source)+'&q='+encodeURIComponent(q);
+    const off=(pPage-1)*pLimit;
+    const url='/api/v1/products?limit='+pLimit+'&offset='+off+'&status='+encodeURIComponent(status)+'&source='+encodeURIComponent(source)+'&q='+encodeURIComponent(q);
     const d=await api(url,null);
     const st=d.stats||{};
     $('pStats').innerHTML='共 '+d.total+' 件 ｜ '
       +P_STATUSES.map(s=>'<span class="chip'+(s==='待投放'?' chip-hot':'')+'">'+s+' '+(st[s]||0)+'</span>').join(' ');
     const box=$('pTableWrap');
-    if(!d.items.length){box.innerHTML='<p class="muted">暂无商品 —— 先跑一次选品/投放分析，推荐商品会自动进入商品库</p>';return;}
+    if(!d.items.length){box.innerHTML='<p class="muted">暂无商品 —— 先跑一次选品/投放分析，推荐商品会自动进入商品库</p>';renderPager();return;}
     let h='<table class="prod-table"><thead><tr><th>商品</th><th>来源</th><th>品类/词</th><th>价格</th><th>月销</th><th>佣金率</th><th>分数</th><th>状态</th><th>推广链接</th></tr></thead><tbody>';
     for(const p of d.items){
       h+='<tr>'
@@ -600,6 +615,7 @@ async function loadProducts(){
     }
     h+='</tbody></table>';
     box.innerHTML=h;
+    renderPager();
   });
 }
 async function setProductStatus(id,status){
@@ -609,8 +625,8 @@ async function setProductStatus(id,status){
     loadProducts();loadDashboard();
   }catch(e){toast('❌ '+e.message);}
 }
-$('btnProducts').onclick=()=>loadProducts();
-$('btnProductsReset').onclick=()=>{$('pStatus').value='';$('pSource').value='';$('pQ').value='';loadProducts();};
+$('btnProducts').onclick=()=>{pPage=1;loadProducts();};
+$('btnProductsReset').onclick=()=>{$('pStatus').value='';$('pSource').value='';$('pQ').value='';pPage=1;loadProducts();};
 $('btnGotoProducts').onclick=()=>$('productsCard').scrollIntoView({behavior:'smooth',block:'start'});
 const CS_STATUSES=['待处理','已回复','已忽略'];
 function csRowHtml(it){
@@ -731,7 +747,12 @@ document.addEventListener('click',e=>{
   const r=e.target.closest('.btn-reply');
   if(r){replyCs(parseInt(r.getAttribute('data-csid')));return;}
   const ig=e.target.closest('.btn-ignore');
-  if(ig){ignoreCs(parseInt(ig.getAttribute('data-csid')));}
+  if(ig){ignoreCs(parseInt(ig.getAttribute('data-csid')));return;}
+  const pg=e.target.closest('.pg-btn');
+  if(pg){const nv=parseInt(pg.getAttribute('data-page'));const pages=Math.max(1,Math.ceil(pTotal/pLimit));if(nv>=1&&nv<=pages){pPage=nv;loadProducts();}}
+});
+document.addEventListener('change',e=>{
+  if(e.target.id==='pLimitSel'){pLimit=parseInt(e.target.value);pPage=1;loadProducts();}
 });
 api('/api/v1/system/status',null).then(setStatus).catch(e=>toast('❌ 状态获取失败：'+e.message));
 loadDashboard();
