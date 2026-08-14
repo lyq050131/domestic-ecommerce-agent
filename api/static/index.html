@@ -28,6 +28,18 @@ pre{background:#0d1117;color:#c9d1d9;border-radius:10px;padding:14px;overflow:au
 #statusBar{display:flex;gap:18px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted)}
 #toast{position:fixed;top:16px;right:16px;background:#1f2328;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;display:none;max-width:420px;z-index:99}
 .loading{color:#0969da;font-size:14px;margin:8px 0}
+.muted{color:var(--muted);font-size:13px}
+select{border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:14px;font-family:inherit;background:#fff}
+.prod-table{border-collapse:collapse;width:100%;font-size:13px;margin-top:4px}
+.prod-table th,.prod-table td{border:1px solid #d0d7de;padding:6px 8px;text-align:left;vertical-align:top}
+.prod-table th{background:#f6f8fa;white-space:nowrap}
+.prod-table .pname{max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hist-item{border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin:8px 0;cursor:pointer;background:#fff}
+.hist-item:hover{border-color:var(--primary);background:#f6f9ff}
+.badge{display:inline-block;background:#e8f0fe;color:var(--primary);border-radius:10px;padding:1px 8px;font-size:11px;margin-left:6px}
+.trend-one{margin:12px 0}
+.trend-title{font-size:13px;font-weight:600;margin-bottom:2px;color:var(--muted)}
+h3{font-size:15px;margin:14px 0 6px}
 /* Markdown 渲染 */
 .md{font-size:14px;line-height:1.75;color:var(--text);background:#fff;border:1px solid var(--border);border-radius:10px;padding:16px 20px;max-height:640px;overflow:auto}
 .md h1,.md h2{font-size:18px;margin:16px 0 8px;padding-bottom:6px;border-bottom:1px solid #eaeef2}
@@ -55,7 +67,7 @@ pre{background:#0d1117;color:#c9d1d9;border-radius:10px;padding:14px;overflow:au
 </header>
 <main>
   <div id="statusBar">
-    <span>版本：<span id="stVersion">-</span> ｜ 淘宝配置：<span id="stTbk">-</span> ｜ DeepSeek：<span id="stLLM">-</span></span>
+    <span>版本：<span id="stVersion">-</span> ｜ 淘宝配置：<span id="stTbk">-</span> ｜ DeepSeek：<span id="stLLM">-</span> ｜ 每日定时：<span id="stAuto">-</span></span>
     <a href="/docs" target="_blank" style="color:#1f6feb">API 文档 /docs</a>
   </div>
 
@@ -73,6 +85,11 @@ pre{background:#0d1117;color:#c9d1d9;border-radius:10px;padding:14px;overflow:au
       <button class="btn-sm" id="selPrintBtn">🖨 打印 / 另存为 PDF</button>
     </div>
     <div class="md hidden" id="selReport"></div>
+    <div class="hidden" id="selProducts">
+      <h3>🛒 推荐商品 · 推广链接（Top10，真实淘宝客 click_url）</h3>
+      <div id="selProductsBox"></div>
+      <p class="muted">💡 点击「复制」拿推广链接去投放；「二维码」生成后手机扫码（需外网）。</p>
+    </div>
   </section>
 
   <section class="card">
@@ -88,6 +105,11 @@ pre{background:#0d1117;color:#c9d1d9;border-radius:10px;padding:14px;overflow:au
       <button class="btn-sm" id="adPrintBtn">🖨 打印 / 另存为 PDF</button>
     </div>
     <div class="md hidden" id="adReport"></div>
+    <div class="hidden" id="adProducts">
+      <h3>🛒 高潜力推广商品 · 推广链接（Top10）</h3>
+      <div id="adProductsBox"></div>
+      <p class="muted">💡 点击「复制」拿推广链接去投放；「二维码」生成后手机扫码（需外网）。</p>
+    </div>
   </section>
 
   <section class="card">
@@ -111,6 +133,36 @@ pre{background:#0d1117;color:#c9d1d9;border-radius:10px;padding:14px;overflow:au
     <div class="row"><button id="btnLoop">刷新统计</button></div>
     <div id="loopLoading" class="hidden loading">⏳ 正在获取统计…</div>
     <pre id="loopReport" class="hidden"></pre>
+  </section>
+  <section class="card">
+    <h2>📚 历史报告与趋势</h2>
+    <div class="row">
+      <label>类型
+        <select id="histType">
+          <option value="selection">选品分析</option>
+          <option value="ad">投放优化</option>
+        </select>
+      </label>
+      <label>条数 <input type="number" id="histLimit" value="20" min="1" max="100" style="width:80px"></label>
+      <button id="btnHist">查询历史</button>
+      <button class="btn-sm" id="btnTrend">📈 查看趋势</button>
+    </div>
+    <div id="histLoading" class="hidden loading">⏳ 正在加载…</div>
+    <div id="histList" class="hidden"></div>
+    <div id="trendBox" class="hidden">
+      <h3>📈 趋势图（近30天）</h3>
+      <div id="trendChart"></div>
+    </div>
+    <div class="row hidden" id="histExport">
+      <button class="btn-sm" id="histMdBtn">⬇ 导出 Markdown</button>
+      <button class="btn-sm" id="histHtmlBtn">⬇ 导出 HTML</button>
+      <button class="btn-sm" id="histPrintBtn">🖨 打印 / 另存为 PDF</button>
+    </div>
+    <div class="md hidden" id="histReport"></div>
+    <div class="hidden" id="histProducts">
+      <h3>🛒 该报告商品 · 推广链接（Top10）</h3>
+      <div id="histProductsBox"></div>
+    </div>
   </section>
 </main>
 <div id="toast"></div>
@@ -179,8 +231,61 @@ function mdRender(src){
   return html;
 }
 function showMd(el,text){el.innerHTML=mdRender(text);el.classList.remove('hidden');}
+function trunc(s,n){s=String(s||'');return s.length>n?s.slice(0,n-1)+'…':s;}
+function attrEsc(s){return esc(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function renderProducts(box,products,isAd){box.innerHTML=prodTableHtml(products||[],isAd);}
+function prodTableHtml(products,isAd){
+  if(!products.length)return '<p class="muted">本次无商品明细（接口未返回推广链接）</p>';
+  let h='<table class="prod-table"><thead><tr><th>商品名称</th>'+(isAd?'<th>关键词</th>':'')+'<th>价格</th><th>月销</th><th>佣金率</th>'+(isAd?'<th>潜力分</th>':'<th>爆款指数</th>')+'<th style="min-width:190px">推广链接</th></tr></thead><tbody>';
+  for(const p of products){
+    h+='<tr><td class="pname" title="'+esc(p.product_name)+'">'+esc(trunc(p.product_name,26))+'</td>'
+      +(isAd?'<td>'+esc(p.keyword||'')+'</td>':'')
+      +'<td>¥'+Number(p.price||0).toFixed(2)+'</td><td>'+(p.sales_30d||0)+'</td><td>'+(p.commission_rate||0)+'%</td>'
+      +(isAd?'<td>'+(p.promotion_score||0)+'</td>':'<td>'+(p.hot_score||0)+'</td>')
+      +'<td><button class="btn-sm btn-copy" data-url="'+attrEsc(p.item_url||'')+'">📋 复制</button> <button class="btn-sm btn-qr" data-url="'+attrEsc(p.item_url||'')+'">▦ 二维码</button></td></tr>';
+  }
+  return h+'</tbody></table>';
+}
+async function copyText(t){
+  if(!t){toast('❌ 该商品没有推广链接');return;}
+  try{
+    if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(t);toast('✅ 链接已复制');return;}
+    throw new Error('no-clip');
+  }catch(err){
+    const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.focus();ta.select();
+    let ok=false;try{ok=document.execCommand('copy');}catch(_){}
+    ta.remove();toast(ok?'✅ 链接已复制':'❌ 复制失败，请手动复制链接');
+  }
+}
+function openQr(url){
+  if(!url){toast('❌ 该商品没有推广链接');return;}
+  window.open('https://api.qrserver.com/v1/create-qr-code/?size=240x240&data='+encodeURIComponent(url),'_blank');
+}
+function fmtNum(n){return n>=10000?(n/10000).toFixed(1)+'w':(Math.round(n*10)/10)+'';}
+function svgTrend(data,s){
+  const w=760,h=160,pad={l:56,r:14,t:16,b:28};
+  let max=0;for(const d of data){const v=Number(d[s.key])||0;if(v>max)max=v;}
+  if(max<=0)return '<p class="muted">该指标暂无数据</p>';
+  max*=1.15;
+  const x=i=>pad.l+i*(w-pad.l-pad.r)/Math.max(1,data.length-1);
+  const y=v=>pad.t+(h-pad.t-pad.b)*(1-v/max);
+  let svg='<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;height:auto">';
+  for(let g=0;g<=3;g++){const gy=y(max*g/3);svg+='<line x1="'+pad.l+'" y1="'+gy+'" x2="'+(w-pad.r)+'" y2="'+gy+'" stroke="#eef1f5"/>';svg+='<text x="'+(pad.l-6)+'" y="'+(gy+4)+'" font-size="10" fill="#57606a" text-anchor="end">'+fmtNum(max*g/3)+'</text>';}
+  const step=Math.max(1,Math.ceil(data.length/8));
+  data.forEach((d,i)=>{if(i%step===0||i===data.length-1){svg+='<text x="'+x(i)+'" y="'+(h-10)+'" font-size="10" fill="#57606a" text-anchor="middle">'+d.date.slice(5)+'</text>';}});
+  const pts=data.map((d,i)=>x(i)+','+y(Number(d[s.key])||0)).join(' ');
+  svg+='<polyline points="'+pts+'" fill="none" stroke="'+s.color+'" stroke-width="2"/>';
+  data.forEach((d,i)=>{const v=Number(d[s.key])||0;svg+='<circle cx="'+x(i)+'" cy="'+y(v)+'" r="3" fill="'+s.color+'"><title>'+d.date+' '+s.label+': '+v+'</title></circle>';});
+  svg+='</svg>';
+  return svg;
+}
+function svgTrends(el,data,series){
+  if(!data.length){el.innerHTML='<p class="muted">暂无趋势数据 —— 先运行几次分析，或等待每日定时任务积累历史</p>';return;}
+  el.innerHTML='<p class="muted">共 '+data.length+' 个有记录的日期（数值为该日报告均值）</p>'+series.map(s=>'<div class="trend-one"><div class="trend-title">'+s.label+'</div>'+svgTrend(data,s)+'</div>').join('');
+}
 const MD_CSS='body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;max-width:900px;margin:24px auto;padding:0 20px;color:#1f2328;line-height:1.75;font-size:14px}.print h1,.print h2{font-size:18px;margin:16px 0 8px;padding-bottom:6px;border-bottom:1px solid #eaeef2}.print h3{font-size:15px;margin:12px 0 6px}.print p{margin:6px 0}.print ul,.print ol{margin:6px 0;padding-left:24px}.print table{border-collapse:collapse;margin:8px 0;width:100%;font-size:13px}.print th,.print td{border:1px solid #d0d7de;padding:6px 10px;text-align:left}.print th{background:#f6f8fa}.print code{background:#eff1f3;border-radius:4px;padding:1px 5px;font-size:12px}.print pre.code{background:#0d1117;color:#c9d1d9;padding:12px;border-radius:8px;overflow:auto}.print blockquote{border-left:3px solid #d0d7de;margin:8px 0;padding:2px 12px;color:#57606a}.print hr{border:0;border-top:1px solid #eaeef2;margin:14px 0}.print a{color:#1f6feb}@media print{body{margin:0;padding:0}}';
-let selMd=null,adMd=null,csMd=null;
+let selMd=null,adMd=null,csMd=null,histMd=null;
 function todayStr(){return new Date().toISOString().slice(0,10).replace(/-/g,'');}
 function download(filename,content,mime){
   const blob=new Blob([content],{type:mime+';charset=utf-8'});
@@ -216,6 +321,7 @@ function setStatus(s){
   $('stVersion').textContent=s.version;
   $('stTbk').textContent=s.taobao_configured?'✅ 已配置':'❌ 未配置';
   $('stLLM').textContent=s.llm_configured?'✅ 已配置':'❌ 未配置';
+  $('stAuto').textContent=s.auto_report_enabled?(s.auto_report_time||'')+' ✅':'关闭 ❌';
 }
 async function run(loading,btn,fn){
   loading.classList.remove('hidden');btn.disabled=true;try{await fn();}catch(e){toast('❌ '+e.message);}finally{loading.classList.add('hidden');btn.disabled=false;}
@@ -225,6 +331,8 @@ $('btnSel').onclick=()=>run($('selLoading'),$('btnSel'),async()=>{
   selMd=`**【品类】** ${d.category}（真实数据 ${d.competitor_count} 款）｜闭环入库：${d.feedback_success?'✅ 成功':'未入库'}\n\n---\n\n${d.report}`;
   $('selExport').classList.remove('hidden');
   showMd($('selReport'),selMd);
+  renderProducts($('selProductsBox'),d.top_products||[],false);
+  $('selProducts').classList.remove('hidden');
 });
 $('btnAd').onclick=()=>run($('adLoading'),$('btnAd'),async()=>{
   const d=await api('/api/v1/ad/optimize',{top_n:parseInt($('adTopN').value)||15});
@@ -232,6 +340,8 @@ $('btnAd').onclick=()=>run($('adLoading'),$('btnAd'),async()=>{
   adMd=`**【推广数据】** ${s.total??'-'} 款商品 ｜ 平均佣金 ${s.avg_commission??'-'}% ｜ 累计预估佣金 ¥${s.total_estimated_commission??'-'}\n\n---\n\n${d.strategy}`;
   $('adExport').classList.remove('hidden');
   showMd($('adReport'),adMd);
+  renderProducts($('adProductsBox'),d.top_products||[],true);
+  $('adProducts').classList.remove('hidden');
 });
 $('btnCs').onclick=()=>run($('csLoading'),$('btnCs'),async()=>{
   const content=$('csContent').value.trim();
@@ -255,6 +365,60 @@ $('adPrintBtn').onclick=()=>printReport(adMd);
 $('csMdBtn').onclick=()=>exportMd('客服回复',csMd);
 $('csHtmlBtn').onclick=()=>exportHtml('客服回复',csMd);
 $('csPrintBtn').onclick=()=>printReport(csMd);
+async function loadHistory(){
+  const type=$('histType').value,limit=parseInt($('histLimit').value)||20;
+  await run($('histLoading'),$('btnHist'),async()=>{
+    const list=await api('/api/v1/reports?type='+encodeURIComponent(type)+'&limit='+limit);
+    $('trendBox').classList.add('hidden');
+    const box=$('histList');box.classList.remove('hidden');
+    if(!list.length){box.innerHTML='<p class="muted">暂无历史报告 —— 先运行一次选品/投放分析，或等待每日定时任务自动生成</p>';return;}
+    box.innerHTML=list.map(r=>{
+      const s=r.summary||{};
+      const meta=type==='selection'
+        ? '商品 '+s.total+' 款 ｜ 平均月销 '+s.avg_sales+' ｜ 佣金率 '+s.avg_commission+'% ｜ 爆款 '+s.hot_count
+        : '商品 '+s.total+' 款 ｜ 平均佣金 '+s.avg_commission+'% ｜ 预估佣金 ¥'+s.total_estimated_commission;
+      return '<div class="hist-item" data-id="'+r.id+'"><div><strong>'+esc(r.title)+'</strong><span class="badge">'+(type==='selection'?'选品':'投放')+'</span></div><div class="muted">'+esc(r.created_at)+' ｜ '+meta+'</div></div>';
+    }).join('');
+    box.querySelectorAll('.hist-item').forEach(el=>{el.onclick=()=>openHistory(parseInt(el.getAttribute('data-id')),type);});
+  });
+}
+async function openHistory(id,type){
+  try{
+    const d=await api('/api/v1/reports/'+id);
+    const s=d.summary||{};
+    const header=type==='selection'
+      ? '**【品类】** '+d.title+'（历史报告）｜ 商品 '+s.total+' 款 ｜ 平均月销 '+s.avg_sales+' ｜ 佣金率 '+s.avg_commission+'% ｜ 爆款 '+s.hot_count
+      : '**【投放方案】** 历史报告 ｜ 商品 '+s.total+' 款 ｜ 平均佣金 '+s.avg_commission+'% ｜ 累计预估佣金 ¥'+s.total_estimated_commission;
+    histMd=header+'\n\n---\n\n'+d.content;
+    showMd($('histReport'),histMd);
+    renderProducts($('histProductsBox'),s.top_products||[],type==='ad');
+    $('histProducts').classList.remove('hidden');
+    $('histExport').classList.remove('hidden');
+    $('histReport').scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){toast('❌ '+e.message);}
+}
+async function loadTrend(){
+  const type=$('histType').value;
+  await run($('histLoading'),$('btnTrend'),async()=>{
+    const data=await api('/api/v1/reports/trend?type='+encodeURIComponent(type)+'&days=30');
+    $('trendBox').classList.remove('hidden');
+    const series=type==='selection'
+      ? [{key:'avg_sales',label:'平均月销',color:'#1f6feb'},{key:'avg_commission',label:'平均佣金率 %',color:'#8250df'},{key:'hot_count',label:'爆款商品数',color:'#1a7f37'}]
+      : [{key:'total_estimated_commission',label:'累计预估佣金 ¥',color:'#1f6feb'},{key:'avg_commission',label:'平均佣金率 %',color:'#8250df'},{key:'total',label:'商品数',color:'#1a7f37'}];
+    svgTrends($('trendChart'),data,series);
+  });
+}
+$('btnHist').onclick=()=>loadHistory();
+$('btnTrend').onclick=()=>loadTrend();
+$('histMdBtn').onclick=()=>exportMd('历史报告',histMd);
+$('histHtmlBtn').onclick=()=>exportHtml('历史报告',histMd);
+$('histPrintBtn').onclick=()=>printReport(histMd);
+document.addEventListener('click',e=>{
+  const c=e.target.closest('.btn-copy');
+  if(c){copyText(c.getAttribute('data-url'));return;}
+  const q=e.target.closest('.btn-qr');
+  if(q){openQr(q.getAttribute('data-url'));}
+});
 api('/api/v1/system/status',null).then(setStatus).catch(e=>toast('❌ 状态获取失败：'+e.message));
 </script>
 </body>

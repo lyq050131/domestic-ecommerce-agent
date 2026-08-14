@@ -5,6 +5,7 @@
 data/raw/
 logs/
 data/vector_db/
+data/reports.db
 data/output/
 data/processed/
 

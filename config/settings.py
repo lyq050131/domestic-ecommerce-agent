@@ -53,6 +53,14 @@ class Settings:
     # ===== 客服模板 =====
     REPLY_TEMPLATES_PATH: str = os.getenv("REPLY_TEMPLATES_PATH", "./data/templates/reply_templates.json")
 
+    # ===== 报告落库与每日定时任务 =====
+    REPORT_DB_PATH: str = os.getenv("REPORT_DB_PATH", "./data/reports.db")
+    AUTO_REPORT_ENABLED: bool = os.getenv("AUTO_REPORT_ENABLED", "true").lower() == "true"
+    AUTO_REPORT_TIME: str = os.getenv("AUTO_REPORT_TIME", "09:30")          # 每天自动运行时刻 HH:MM
+    AUTO_REPORT_CATEGORY: str = os.getenv("AUTO_REPORT_CATEGORY", "无线蓝牙耳机")
+    AUTO_REPORT_COUNT: int = int(os.getenv("AUTO_REPORT_COUNT", "20"))
+    AUTO_REPORT_AD_TOP_N: int = int(os.getenv("AUTO_REPORT_AD_TOP_N", "15"))
+
     @property
     def taobao_configured(self) -> bool:
         """是否已配置完整的淘宝客三要素"""

@@ -6,7 +6,7 @@ from typing import Optional
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from pathlib import Path
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -17,11 +17,24 @@ from agents.ad_optimization_agent import ad_optimization_agent
 from agents.customer_service_agent import customer_service_agent
 from retrieval.mobius_loop import mobius_loop
 from utils.logger import logger
+from contextlib import asynccontextmanager
+
+from api.scheduler import daily_scheduler
+from storage.report_store import report_store
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """应用生命周期：启动时拉起每日定时任务，退出时停止"""
+    daily_scheduler.start()
+    yield
+    daily_scheduler.stop()
+
 
 app = FastAPI(
     title="国内电商店铺自动化运营智能体 API",
     description="接入真实淘宝平台（淘宝客 API）+ DeepSeek 大模型的电商运营智能体（v3.1 真实店铺运营版）",
     version="3.1.0",
+    lifespan=lifespan,
 )
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
@@ -61,6 +74,16 @@ async def analyze_product_selection(request: ProductSelectionRequest):
             request.category, count=request.count, cat=request.cat,
             include_keywords=request.include_keywords, exclude_keywords=request.exclude_keywords,
         )
+        report_id, summary = report_store.save_selection_report(
+            result,
+            params={
+                "category": request.category,
+                "count": request.count,
+                "cat": request.cat,
+                "include_keywords": request.include_keywords,
+                "exclude_keywords": request.exclude_keywords,
+            },
+        )
         return {
             "code": 0, "message": "success",
             "data": {
@@ -69,6 +92,8 @@ async def analyze_product_selection(request: ProductSelectionRequest):
                 "feedback_success": result["feedback_success"],
                 "data_source": result["data_source"],
                 "competitor_count": len(result["competitor_data"]),
+                "report_id": report_id,
+                "top_products": summary.get("top_products", []),
                 "cat": result.get("cat"),
                 "include_keywords": result.get("include_keywords"),
                 "exclude_keywords": result.get("exclude_keywords"),
@@ -86,6 +111,10 @@ async def optimize_ads(request: AdOptimizationRequest):
             keywords=request.keywords, top_n=request.top_n,
             order_days=request.order_days, exclude_keywords=request.exclude_keywords,
         )
+        report_id, summary = report_store.save_ad_report(
+            result,
+            params={"keywords": request.keywords, "top_n": request.top_n, "order_days": request.order_days},
+        )
         return {
             "code": 0, "message": "success",
             "data": {
@@ -93,6 +122,8 @@ async def optimize_ads(request: AdOptimizationRequest):
                 "promotion_summary": result["promotion_summary"],
                 "feedback_success": result["feedback_success"],
                 "data_source": result["data_source"],
+                "report_id": report_id,
+                "top_products": summary.get("top_products", []),
             },
         }
     except Exception as e:
@@ -145,6 +176,38 @@ async def get_loop_stats():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/v1/reports", summary="历史报告列表")
+async def list_reports(report_type: Optional[str] = Query(None, alias="type"), limit: int = 30):
+    try:
+        return {"code": 0, "message": "success", "data": report_store.list_reports(report_type, limit)}
+    except Exception as e:
+        logger.error(f"获取历史报告失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v1/reports/trend", summary="报告趋势（按日期聚合）")
+async def get_report_trend(report_type: str = Query("selection", alias="type"), days: int = 30):
+    try:
+        return {"code": 0, "message": "success", "data": report_store.trend(report_type, days)}
+    except Exception as e:
+        logger.error(f"获取报告趋势失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v1/reports/{report_id}", summary="报告详情")
+async def get_report_detail(report_id: int):
+    try:
+        report = report_store.get_report(report_id)
+        if not report:
+            raise HTTPException(status_code=404, detail="报告不存在")
+        return {"code": 0, "message": "success", "data": report}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"获取报告详情失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/v1/system/status", summary="系统状态（不含任何密钥）")
 async def system_status():
     return {
@@ -155,6 +218,9 @@ async def system_status():
             "taobao_configured": settings.taobao_configured,
             "llm_configured": settings.llm_configured,
             "order_api_enabled": settings.TAOBAO_ORDER_ENABLED,
+            "auto_report_enabled": settings.AUTO_REPORT_ENABLED,
+            "auto_report_time": settings.AUTO_REPORT_TIME,
+            "report_db": "data/reports.db",
         },
     }
 
