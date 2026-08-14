@@ -71,6 +71,14 @@ class DingTalkNotifier:
         text = build_daily_digest(date_str, selection, ad)
         return self.send_markdown(f"📊 电商运营日报 {date_str}", text)
 
+    def send_launch_links(self, date_str: str, category: str, links: list) -> bool:
+        """发送自动投放推广链接清单（Top10）"""
+        if not links:
+            logger.warning("自动投放清单为空，跳过推送")
+            return False
+        text = build_launch_links_text(date_str, category, links)
+        return self.send_markdown(f"🚀 自动投放清单 {date_str}", text)
+
 
 def _int_num(v) -> str:
     """取整（用于平均月销等）"""
@@ -86,6 +94,22 @@ def _fmt_num(v) -> str:
         return str(int(n)) if n == int(n) else f"{n:g}"
     except Exception:
         return str(v or 0)
+
+
+def build_launch_links_text(date_str: str, category: str, links: list) -> str:
+    """自动投放清单 markdown 文本（推广链接 + 关键指标）"""
+    lines = [f"## 🚀 自动投放清单（{date_str}）", ""]
+    lines.append(f"品类：**{category or '-'}** ｜ 本次生成 {len(links)} 条推广链接（淘宝客 click_url）")
+    lines.append("")
+    if links:
+        lines.append("**Top 链接：**")
+        for i, l in enumerate(links[:10], 1):
+            name = (l.get("product_name") or "")[:22]
+            url = l.get("item_url") or ""
+            link = f"[{name}]({url})" if url else name
+            lines.append(f"  {i}. {link} ｜ ¥{_fmt_num(l.get('price'))} / 佣金{_fmt_num(l.get('commission_rate'))}% / 月销{_fmt_num(l.get('sales_30d'))}")
+    lines += ["", "> 复制链接到浏览器或手机扫码即可投放；完整清单见本地运营后台 http://127.0.0.1:8000/", ""]
+    return "\n".join(lines)
 
 
 def build_daily_digest(date_str: str, selection: Optional[dict] = None, ad: Optional[dict] = None) -> str:

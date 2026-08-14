@@ -88,6 +88,12 @@ class CSQueueStatusRequest(BaseModel):
     status: str
 
 
+class AutoLaunchRequest(BaseModel):
+    category: Optional[str] = None          # 品类（默认取定时任务配置）
+    top_n: Optional[int] = 10               # 推广链接清单条数（1-20）
+    push_dingtalk: Optional[bool] = True    # 是否推送钉钉清单
+
+
 class SettingsUpdateRequest(BaseModel):
     auto_report_enabled: Optional[bool] = None
     auto_report_time: Optional[str] = None
@@ -411,6 +417,66 @@ async def update_settings(request: SettingsUpdateRequest):
         "saved": True, "updated": updated, "restart_required": True,
         "hint": "设置已写入 .env，重启服务后生效",
     }}
+
+
+@app.post("/api/v1/auto/launch", summary="自动投放（一键流水线）")
+async def auto_launch(request: AutoLaunchRequest):
+    """自动投放流水线：选品+投放分析 → 报告/商品落库 → 汇总推广链接清单 → 钉钉推送。
+    合规边界：只生成可投放的推广链接清单，不自动下单、不自动发布，由运营者确认后投放。
+    """
+    category = (request.category or "").strip() or settings.AUTO_REPORT_CATEGORY
+    top_n = max(1, min(int(request.top_n or 10), 20))
+    try:
+        logger.info("========== 自动投放流水线开始 ==========")
+        # 1) 选品分析 + 落库
+        sel_result = product_selection_agent.analyze_category(
+            category, count=settings.AUTO_REPORT_COUNT
+        )
+        rid_sel, sel_summary = report_store.save_selection_report(
+            sel_result, params={"category": category, "count": settings.AUTO_REPORT_COUNT}
+        )
+        # 2) 投放优化 + 落库
+        ad_result = ad_optimization_agent.optimize_campaigns(top_n=settings.AUTO_REPORT_AD_TOP_N)
+        rid_ad, ad_summary = report_store.save_ad_report(
+            ad_result, params={"top_n": settings.AUTO_REPORT_AD_TOP_N}
+        )
+        # 3) 汇总推广链接（按 item_url 去重）
+        links, seen = [], set()
+        for source, tops in (
+            ("选品", sel_summary.get("top_products") or []),
+            ("投放", ad_summary.get("top_products") or []),
+        ):
+            for p in tops:
+                url = p.get("item_url") or ""
+                if not url or url in seen:
+                    continue
+                seen.add(url)
+                links.append({
+                    "product_name": p.get("product_name") or "",
+                    "price": p.get("price") or 0,
+                    "sales_30d": p.get("sales_30d") or 0,
+                    "commission_rate": p.get("commission_rate") or 0,
+                    "score": round(float(p.get("hot_score") or p.get("promotion_score") or 0), 2),
+                    "item_url": url,
+                    "source": source,
+                })
+                if len(links) >= top_n:
+                    break
+        # 4) 钉钉推送清单
+        sent = False
+        if request.push_dingtalk:
+            sent = dingtalk.send_launch_links(datetime.now().strftime("%Y-%m-%d"), category, links)
+        logger.info("========== 自动投放流水线完成 ==========")
+        return {"code": 0, "message": "success", "data": {
+            "category": category,
+            "report_ids": {"selection": rid_sel, "ad": rid_ad},
+            "links": links,
+            "link_count": len(links),
+            "dingtalk_sent": sent,
+        }}
+    except Exception as e:
+        logger.error(f"自动投放失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/v1/notify/test", summary="钉钉推送测试")

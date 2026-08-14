@@ -157,6 +157,23 @@ h3{font-size:15px;margin:14px 0 6px}
   </section>
 
   <section class="card">
+    <h2>🚀 自动投放</h2>
+    <p class="muted">一键执行「选品分析 → 投放优化 → 推广链接清单 → 钉钉推送」，把今天的推荐直接变成可投放动作。合规边界：只生成链接清单，不自动下单/发布，由你确认后投放。开启每日定时任务后，每天自动执行同样的分析流程。</p>
+    <div class="row">
+      <label>品类 <input type="text" id="alCategory" placeholder="留空=定时任务配置品类" style="width:200px"></label>
+      <label>链接条数 <input type="number" id="alTopN" value="10" min="1" max="20" style="width:70px"></label>
+      <label><input type="checkbox" id="alDing" checked> 推送钉钉清单</label>
+      <button id="btnAutoLaunch">🚀 立即执行（约2-3分钟）</button>
+    </div>
+    <div id="alLoading" class="hidden loading">⏳ 自动投放进行中：选品分析 → 投放优化 → 生成链接清单…</div>
+    <div id="alResult" class="hidden">
+      <div id="alSummary" class="muted" style="margin-bottom:6px"></div>
+      <h3>🔗 推广链接投放清单（可复制 / 二维码）</h3>
+      <div id="alLinks"></div>
+    </div>
+  </section>
+
+  <section class="card">
     <h2>💬 多语言客服</h2>
     <div class="row">
       <label>内容 <input type="text" id="csContent" style="width:380px" placeholder="输入评论或私信内容"></label>
@@ -628,6 +645,31 @@ async function setProductStatus(id,status){
 $('btnProducts').onclick=()=>{pPage=1;loadProducts();};
 $('btnProductsReset').onclick=()=>{$('pStatus').value='';$('pSource').value='';$('pQ').value='';pPage=1;loadProducts();};
 $('btnGotoProducts').onclick=()=>$('productsCard').scrollIntoView({behavior:'smooth',block:'start'});
+function renderLaunchLinks(box,links){
+  if(!links.length){box.innerHTML='<p class="muted">本次没有生成推广链接</p>';return;}
+  let h='<table class="prod-table"><thead><tr><th>来源</th><th>商品</th><th>价格</th><th>月销</th><th>佣金率</th><th>分数</th><th>推广链接</th></tr></thead><tbody>';
+  for(const p of links){
+    h+='<tr><td>'+(p.source==='选品'?'选品':'投放')+'</td>'
+      +'<td class="pname" title="'+esc(p.product_name)+'">'+esc(trunc(p.product_name||'',26))+'</td>'
+      +'<td>¥'+Number(p.price||0).toFixed(2)+'</td><td>'+(p.sales_30d||0)+'</td><td>'+(p.commission_rate||0)+'%</td>'
+      +'<td>'+(p.score||0)+'</td>'
+      +'<td><button class="btn-sm btn-copy" data-url="'+attrEsc(p.item_url||'')+'">📋 复制</button> <button class="btn-sm btn-qr" data-url="'+attrEsc(p.item_url||'')+'">▦ 二维码</button></td></tr>';
+  }
+  h+='</tbody></table>';
+  box.innerHTML=h;
+}
+$('btnAutoLaunch').onclick=()=>run($('alLoading'),$('btnAutoLaunch'),async()=>{
+  const body={};
+  const cat=$('alCategory').value.trim();
+  if(cat)body.category=cat;
+  body.top_n=parseInt($('alTopN').value)||10;
+  body.push_dingtalk=$('alDing').checked;
+  const d=await api('/api/v1/auto/launch',body);
+  $('alSummary').textContent='品类 '+d.category+' ｜ 选品报告 #'+d.report_ids.selection+' ｜ 投放报告 #'+d.report_ids.ad+' ｜ 链接 '+d.link_count+' 条 ｜ 钉钉推送：'+(d.dingtalk_sent?'✅ 已发送':'未发送/未开启');
+  renderLaunchLinks($('alLinks'),d.links||[]);
+  $('alResult').classList.remove('hidden');
+  loadDashboard();loadProducts();
+});
 const CS_STATUSES=['待处理','已回复','已忽略'];
 function csRowHtml(it){
   const rating=it.rating?('｜ 评分 '+it.rating):'';
