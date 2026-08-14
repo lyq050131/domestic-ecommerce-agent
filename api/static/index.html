@@ -26,6 +26,24 @@ pre{background:#0d1117;color:#c9d1d9;border-radius:10px;padding:14px;overflow:au
 #statusBar{display:flex;gap:18px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted)}
 #toast{position:fixed;top:16px;right:16px;background:#1f2328;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;display:none;max-width:420px;z-index:99}
 .loading{color:#0969da;font-size:14px;margin:8px 0}
+/* Markdown 渲染 */
+.md{font-size:14px;line-height:1.75;color:var(--text);background:#fff;border:1px solid var(--border);border-radius:10px;padding:16px 20px;max-height:640px;overflow:auto}
+.md h1,.md h2{font-size:18px;margin:16px 0 8px;padding-bottom:6px;border-bottom:1px solid #eaeef2}
+.md h3{font-size:15px;margin:12px 0 6px}
+.md h4,.md h5,.md h6{font-size:14px;margin:10px 0 4px}
+.md p{margin:6px 0}
+.md ul,.md ol{margin:6px 0;padding-left:24px}
+.md li{margin:3px 0}
+.md table{border-collapse:collapse;margin:8px 0;width:100%;font-size:13px}
+.md th,.md td{border:1px solid #d0d7de;padding:6px 10px;text-align:left;vertical-align:top}
+.md th{background:#f6f8fa;font-weight:600}
+.md code{background:#eff1f3;border-radius:4px;padding:1px 5px;font-size:12px;font-family:Consolas,Menlo,monospace}
+.md pre.code{background:#0d1117;color:#c9d1d9;padding:12px 14px;border-radius:8px;overflow:auto;margin:8px 0}
+.md pre.code code{background:none;padding:0;color:inherit;font-size:12.5px}
+.md blockquote{border-left:3px solid #d0d7de;margin:8px 0;padding:2px 12px;color:var(--muted);background:#fafbfc}
+.md hr{border:0;border-top:1px solid #eaeef2;margin:14px 0}
+.md a{color:var(--primary)}
+.md strong{font-weight:700}
 </style>
 </head>
 <body>
@@ -47,7 +65,7 @@ pre{background:#0d1117;color:#c9d1d9;border-radius:10px;padding:14px;overflow:au
       <button id="btnSel">开始分析（约1-2分钟）</button>
     </div>
     <div id="selLoading" class="hidden loading">⏳ 正在抓取淘宝真实数据并生成报告，请稍候…</div>
-    <pre id="selReport" class="hidden"></pre>
+    <div class="md hidden" id="selReport"></div>
   </section>
 
   <section class="card">
@@ -57,7 +75,7 @@ pre{background:#0d1117;color:#c9d1d9;border-radius:10px;padding:14px;overflow:au
       <button id="btnAd">开始优化（约1分钟）</button>
     </div>
     <div id="adLoading" class="hidden loading">⏳ 正在抓取 10 个关键词真实数据并生成方案…</div>
-    <pre id="adReport" class="hidden"></pre>
+    <div class="md hidden" id="adReport"></div>
   </section>
 
   <section class="card">
@@ -68,7 +86,7 @@ pre{background:#0d1117;color:#c9d1d9;border-radius:10px;padding:14px;overflow:au
       <button id="btnCs">生成回复</button>
     </div>
     <div id="csLoading" class="hidden loading">⏳ 正在生成回复…</div>
-    <pre id="csReport" class="hidden"></pre>
+    <div class="md hidden" id="csReport"></div>
   </section>
 
   <section class="card">
@@ -82,7 +100,68 @@ pre{background:#0d1117;color:#c9d1d9;border-radius:10px;padding:14px;overflow:au
 <script>
 const $=id=>document.getElementById(id);
 function toast(msg){const t=$('toast');t.textContent=msg;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',6000);}
-function show(pre,text){pre.textContent=text;pre.classList.remove('hidden');}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function inline(s){
+  return s
+    .replace(/`([^`]+)`/g,(m,c)=>'<code>'+esc(c)+'</code>')
+    .replace(/\*\*([^*]+)\*\*/g,(m,c)=>'<strong>'+esc(c)+'</strong>')
+    .replace(/\*([^*]+)\*/g,(m,c)=>'<em>'+esc(c)+'</em>')
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,(m,t,u)=>'<a href="'+esc(u)+'" target="_blank" rel="noopener">'+esc(t)+'</a>');
+}
+function mdRender(src){
+  const lines=String(src||'').replace(/\r\n/g,'\n').split('\n');
+  let html='',i=0,list=[],listType=null;
+  const closeList=()=>{
+    if(list.length){html+=(listType==='ul'?'<ul>':'<ol>');for(const li of list)html+='<li>'+inline(li)+'</li>';html+=(listType==='ul'?'</ul>':'</ol>');list=[];listType=null;}
+  };
+  while(i<lines.length){
+    const line=lines[i];
+    if(/^```/.test(line)){
+      closeList();const buf=[];i++;
+      while(i<lines.length&&!/^```/.test(lines[i])){buf.push(lines[i]);i++;}
+      i++;
+      html+='<pre class="code"><code>'+esc(buf.join('\n'))+'</code></pre>';
+      continue;
+    }
+    if(/^#{1,6}\s+/.test(line)){
+      closeList();const m=line.match(/^(#{1,6})\s+(.*)$/);const lv=m[1].length;
+      html+='<h'+lv+'>'+inline(m[2])+'</h'+lv+'>';i++;continue;
+    }
+    if(/^\s*[-*]\s+/.test(line)){
+      if(listType!=='ul'){closeList();listType='ul';}
+      list.push(line.replace(/^\s*[-*]\s+/,''));i++;continue;
+    }
+    if(/^\s*\d+\.\s+/.test(line)){
+      if(listType!=='ol'){closeList();listType='ol';}
+      list.push(line.replace(/^\s*\d+\.\s+/,''));i++;continue;
+    }
+    if(/^>\s?/.test(line)){
+      closeList();html+='<blockquote>'+inline(line.replace(/^>\s?/,''))+'</blockquote>';i++;continue;
+    }
+    if(/^\s*(?:-{3,}|\*{3,})\s*$/.test(line)){
+      closeList();html+='<hr>';i++;continue;
+    }
+    if(/^\s*\|.*\|\s*$/.test(line)){
+      closeList();
+      const rows=[];
+      while(i<lines.length&&/^\s*\|.*\|\s*$/.test(lines[i])){rows.push(lines[i]);i++;}
+      const parseRow=r=>r.trim().replace(/^\|/,'').replace(/\|\s*$/,'').split('|').map(c=>c.trim());
+      const header=parseRow(rows[0]);
+      const sepOk=rows.length>1&&/^\s*\|?[\s:|-]+\|?\s*$/.test(rows[1]);
+      html+='<table><thead><tr>'+header.map(h=>'<th>'+inline(h)+'</th>').join('')+'</tr></thead><tbody>';
+      for(const r of (sepOk?rows.slice(2):rows.slice(1))){html+='<tr>'+parseRow(r).map(c=>'<td>'+inline(c)+'</td>').join('')+'</tr>';}
+      html+='</tbody></table>';
+      continue;
+    }
+    if(line.trim()===''){closeList();i++;continue;}
+    closeList();
+    html+='<p>'+inline(line)+'</p>';
+    i++;
+  }
+  closeList();
+  return html;
+}
+function showMd(el,text){el.innerHTML=mdRender(text);el.classList.remove('hidden');}
 async function api(url,body){
   const opt={method:body?'POST':'GET',headers:{'Content-Type':'application/json'}};
   if(body)opt.body=JSON.stringify(body);
@@ -97,30 +176,29 @@ function setStatus(s){
   $('stTbk').textContent=s.taobao_configured?'✅ 已配置':'❌ 未配置';
   $('stLLM').textContent=s.llm_configured?'✅ 已配置':'❌ 未配置';
 }
-async function run(id,loading,btn,fn){
+async function run(loading,btn,fn){
   loading.classList.remove('hidden');btn.disabled=true;try{await fn();}catch(e){toast('❌ '+e.message);}finally{loading.classList.add('hidden');btn.disabled=false;}
 }
-$('btnSel').onclick=()=>run($('selLoading'),$('selLoading'),$('btnSel'),async()=>{
+$('btnSel').onclick=()=>run($('selLoading'),$('btnSel'),async()=>{
   const d=await api('/api/v1/selection/analyze',{category:$('selCategory').value.trim()||'无线蓝牙耳机',count:parseInt($('selCount').value)||20});
-  $('selReport').classList.remove('hidden');
-  show($('selReport'),`【品类】${d.category}（真实数据 ${d.competitor_count} 款）｜闭环入库：${d.feedback_success?'✅ 成功':'未入库'}\n\n${d.report}`);
+  showMd($('selReport'),`**【品类】** ${d.category}（真实数据 ${d.competitor_count} 款）｜闭环入库：${d.feedback_success?'✅ 成功':'未入库'}\n\n---\n\n${d.report}`);
 });
-$('btnAd').onclick=()=>run($('adLoading'),$('adLoading'),$('btnAd'),async()=>{
+$('btnAd').onclick=()=>run($('adLoading'),$('btnAd'),async()=>{
   const d=await api('/api/v1/ad/optimize',{top_n:parseInt($('adTopN').value)||15});
   const s=d.promotion_summary||{};
-  const head=`【推广数据】${s.total??'-'} 款商品 ｜ 平均佣金 ${s.avg_commission??'-'}% ｜ 累计预估佣金 ¥${s.total_estimated_commission??'-'}\n\n`;
-  show($('adReport'),head+d.strategy);
+  const head=`**【推广数据】** ${s.total??'-'} 款商品 ｜ 平均佣金 ${s.avg_commission??'-'}% ｜ 累计预估佣金 ¥${s.total_estimated_commission??'-'}\n\n---\n\n`;
+  showMd($('adReport'),head+d.strategy);
 });
-$('btnCs').onclick=()=>run($('csLoading'),$('csLoading'),$('btnCs'),async()=>{
+$('btnCs').onclick=()=>run($('csLoading'),$('btnCs'),async()=>{
   const content=$('csContent').value.trim();
   if(!content){toast('❌ 请先输入评论/私信内容');return;}
   const rating=parseInt($('csRating').value);
   const d=rating?await api('/api/v1/cs/review',{content,rating}):await api('/api/v1/cs/message',{content});
-  show($('csReport'),`【语言】${d.detected_language} ｜ 命中模板：${d.matched_template||'无'} ｜ 闭环：${d.feedback_success?'✅':'-'}\n\n回复内容：\n${d.reply}`);
+  showMd($('csReport'),`**【语言】** ${d.detected_language} ｜ 命中模板：${d.matched_template||'无'} ｜ 闭环：${d.feedback_success?'✅':'-'}\n\n---\n\n${d.reply}`);
 });
-$('btnLoop').onclick=()=>run($('loopLoading'),$('loopLoading'),$('btnLoop'),async()=>{
+$('btnLoop').onclick=()=>run($('loopLoading'),$('btnLoop'),async()=>{
   const d=await api('/api/v1/loop/stats',null);
-  show($('loopReport'),JSON.stringify(d,null,2));
+  $('loopReport').textContent=JSON.stringify(d,null,2);$('loopReport').classList.remove('hidden');
 });
 api('/api/v1/system/status',null).then(setStatus).catch(e=>toast('❌ 状态获取失败：'+e.message));
 </script>
