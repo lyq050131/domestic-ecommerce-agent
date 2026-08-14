@@ -29,6 +29,7 @@ pre{background:#0d1117;color:#c9d1d9;border-radius:10px;padding:14px;overflow:au
 #toast{position:fixed;top:16px;right:16px;background:#1f2328;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;display:none;max-width:420px;z-index:99}
 .loading{color:#0969da;font-size:14px;margin:8px 0}
 .muted{color:var(--muted);font-size:13px}
+.card code{background:#eff1f3;border-radius:4px;padding:1px 5px;font-size:12px}
 select{border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:14px;font-family:inherit;background:#fff}
 .prod-table{border-collapse:collapse;width:100%;font-size:13px;margin-top:4px}
 .prod-table th,.prod-table td{border:1px solid #d0d7de;padding:6px 8px;text-align:left;vertical-align:top}
@@ -67,7 +68,7 @@ h3{font-size:15px;margin:14px 0 6px}
 </header>
 <main>
   <div id="statusBar">
-    <span>版本：<span id="stVersion">-</span> ｜ 淘宝配置：<span id="stTbk">-</span> ｜ DeepSeek：<span id="stLLM">-</span> ｜ 每日定时：<span id="stAuto">-</span></span>
+    <span>版本：<span id="stVersion">-</span> ｜ 淘宝配置：<span id="stTbk">-</span> ｜ DeepSeek：<span id="stLLM">-</span> ｜ 每日定时：<span id="stAuto">-</span> ｜ 钉钉：<span id="stDing">-</span></span>
     <a href="/docs" target="_blank" style="color:#1f6feb">API 文档 /docs</a>
   </div>
 
@@ -163,6 +164,16 @@ h3{font-size:15px;margin:14px 0 6px}
       <h3>🛒 该报告商品 · 推广链接（Top10）</h3>
       <div id="histProductsBox"></div>
     </div>
+  </section>
+
+  <section class="card">
+    <h2>🔔 钉钉日报推送</h2>
+    <div class="row">
+      <span class="muted">状态：<span id="stDing2">-</span></span>
+      <button id="btnNotify">📣 测试推送</button>
+    </div>
+    <div id="notifyLoading" class="hidden loading">⏳ 正在发送测试消息…</div>
+    <p class="muted">每日定时报告生成后，自动把选品/投放日报摘要推送到钉钉群。Webhook 在项目根目录 <code>.env</code> 的 <code>DINGTALK_WEBHOOK_URL</code> 配置（机器人安全设置若为“加签”，再加 <code>DINGTALK_SECRET</code>），保存后需重启服务生效。</p>
   </section>
 </main>
 <div id="toast"></div>
@@ -322,6 +333,8 @@ function setStatus(s){
   $('stTbk').textContent=s.taobao_configured?'✅ 已配置':'❌ 未配置';
   $('stLLM').textContent=s.llm_configured?'✅ 已配置':'❌ 未配置';
   $('stAuto').textContent=s.auto_report_enabled?(s.auto_report_time||'')+' ✅':'关闭 ❌';
+  $('stDing').textContent=s.dingtalk_configured?'✅ 已配置':'未配置';
+  $('stDing2').textContent=s.dingtalk_configured?'✅ 已配置（每日报告自动推送）':'未配置（.env 填 DINGTALK_WEBHOOK_URL 后重启）';
 }
 async function run(loading,btn,fn){
   loading.classList.remove('hidden');btn.disabled=true;try{await fn();}catch(e){toast('❌ '+e.message);}finally{loading.classList.add('hidden');btn.disabled=false;}
@@ -413,6 +426,7 @@ $('btnTrend').onclick=()=>loadTrend();
 $('histMdBtn').onclick=()=>exportMd('历史报告',histMd);
 $('histHtmlBtn').onclick=()=>exportHtml('历史报告',histMd);
 $('histPrintBtn').onclick=()=>printReport(histMd);
+$('btnNotify').onclick=()=>run($('notifyLoading'),$('btnNotify'),async()=>{await api('/api/v1/notify/test',{});toast('✅ 测试消息已发送到钉钉，请查看群消息');});
 document.addEventListener('click',e=>{
   const c=e.target.closest('.btn-copy');
   if(c){copyText(c.getAttribute('data-url'));return;}

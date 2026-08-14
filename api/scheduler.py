@@ -11,6 +11,7 @@ from config.settings import settings
 from agents.product_selection_agent import product_selection_agent
 from agents.ad_optimization_agent import ad_optimization_agent
 from storage.report_store import report_store
+from notify.dingtalk import dingtalk
 from utils.logger import logger
 
 
@@ -58,20 +59,30 @@ class DailyReportScheduler:
 
     def _run_daily(self) -> None:
         logger.info("========== 每日自动运营任务开始 ==========")
+        selection = None
+        ad = None
         try:
             result = product_selection_agent.analyze_category(
                 settings.AUTO_REPORT_CATEGORY, count=settings.AUTO_REPORT_COUNT
             )
-            rid, _ = report_store.save_selection_report(result)
+            rid, summary = report_store.save_selection_report(result)
+            selection = {"title": result.get("category") or "选品分析", "summary": summary}
             logger.info(f"✅ 自动选品报告已生成并落库（id={rid}，品类={result.get('category')}）")
         except Exception as e:
             logger.error(f"自动选品失败: {e}")
         try:
             result = ad_optimization_agent.optimize_campaigns(top_n=settings.AUTO_REPORT_AD_TOP_N)
-            rid, _ = report_store.save_ad_report(result)
+            rid, summary = report_store.save_ad_report(result)
+            ad = {"title": "推广优化方案", "summary": summary}
             logger.info(f"✅ 自动投放报告已生成并落库（id={rid}）")
         except Exception as e:
             logger.error(f"自动投放失败: {e}")
+        if selection or ad:
+            date_str = datetime.now().strftime("%Y-%m-%d")
+            if dingtalk.send_daily_digest(date_str, selection, ad):
+                logger.info("✅ 钉钉日报推送完成")
+            else:
+                logger.warning("钉钉日报推送未发送（未配置 Webhook 或发送失败）")
         logger.info("========== 每日自动运营任务结束 ==========")
 
 

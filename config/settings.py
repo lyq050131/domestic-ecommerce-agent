@@ -61,6 +61,11 @@ class Settings:
     AUTO_REPORT_COUNT: int = int(os.getenv("AUTO_REPORT_COUNT", "20"))
     AUTO_REPORT_AD_TOP_N: int = int(os.getenv("AUTO_REPORT_AD_TOP_N", "15"))
 
+    # ===== 钉钉机器人日报推送（可选：配置 DINGTALK_WEBHOOK_URL 后每日报告自动推送到钉钉群） =====
+    DINGTALK_ENABLED: bool = os.getenv("DINGTALK_ENABLED", "true").lower() == "true"
+    DINGTALK_WEBHOOK_URL: str = os.getenv("DINGTALK_WEBHOOK_URL", "")      # 钉钉自定义机器人 Webhook 地址
+    DINGTALK_SECRET: str = os.getenv("DINGTALK_SECRET", "")                 # 机器人加签密钥（未启用加签可留空）
+
     @property
     def taobao_configured(self) -> bool:
         """是否已配置完整的淘宝客三要素"""
