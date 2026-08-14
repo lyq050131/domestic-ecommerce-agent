@@ -136,6 +136,12 @@ notepad .env
 - `PUT /api/v1/settings` 保存运营设置（写 `.env`，重启生效）
 - `GET /api/v1/system/status` 系统状态（不含密钥）
 
+## 阿里云上线（Docker）
+- 已内置 `Dockerfile` / `docker-compose.yml` / `deploy/deploy.sh`，密钥经 `.env` 注入，数据与日志走数据卷持久化；
+- 完整步骤见 [deploy/阿里云上线指南.md](deploy/阿里云上线指南.md)；
+- 一句话部署（服务器上）：克隆仓库 → `cp .env.example .env` 填密钥 → `docker compose up -d --build`；
+- 上线后访问 `http://<公网IP>:8000/`（Web 后台）与 `/docs`（API 文档）。
+
 ## 合规与边界
 - 代码中不写死任何密钥，全部从 `.env` 读取，启动时校验缺失项；
 - 只生成选品结论、推广方案、客服回复文本，**不自动下单、不自动发布**（由运营者确认后执行）；
