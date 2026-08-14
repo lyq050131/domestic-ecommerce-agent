@@ -65,6 +65,7 @@ class Settings:
     DINGTALK_ENABLED: bool = os.getenv("DINGTALK_ENABLED", "true").lower() == "true"
     DINGTALK_WEBHOOK_URL: str = os.getenv("DINGTALK_WEBHOOK_URL", "")      # 钉钉自定义机器人 Webhook 地址
     DINGTALK_SECRET: str = os.getenv("DINGTALK_SECRET", "")                 # 机器人加签密钥（未启用加签可留空）
+    DINGTALK_KEYWORD: str = os.getenv("DINGTALK_KEYWORD", "运营")           # 机器人「自定义关键词」安全设置的关键词，推送会自动带上
 
     @property
     def taobao_configured(self) -> bool:

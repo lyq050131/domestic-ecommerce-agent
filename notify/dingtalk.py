@@ -25,6 +25,7 @@ class DingTalkNotifier:
         self.webhook_url = settings.DINGTALK_WEBHOOK_URL.strip()
         self.secret = settings.DINGTALK_SECRET.strip()
         self.enabled_flag = settings.DINGTALK_ENABLED
+        self.keyword = settings.DINGTALK_KEYWORD.strip()
 
     @property
     def configured(self) -> bool:
@@ -46,6 +47,9 @@ class DingTalkNotifier:
         if not self.configured:
             logger.warning("钉钉机器人未配置（DINGTALK_WEBHOOK_URL 为空或 DINGTALK_ENABLED=false），跳过推送")
             return False
+        # 钉钉「自定义关键词」安全设置：消息必须包含关键词，缺失时自动附加
+        if self.keyword and self.keyword not in text:
+            text = text + f"\n\n> 🔔 国内电商{self.keyword}助手自动推送"
         payload = {
             "msgtype": "markdown",
             "markdown": {"title": title[:64], "text": text},
