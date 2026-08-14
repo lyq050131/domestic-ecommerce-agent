@@ -30,7 +30,9 @@
 - **商品库与状态流转**：推荐商品自动沉淀为商品池，支持标记「待投放 / 已投放 / 效果待观察 / 已排除」，让推荐可跟踪、可复盘；
 - **每日定时任务**：API 启动后自动调度，每天固定时刻（默认 09:30）自动运行选品+投放分析并落库，实现无人值守日度运营；
 - **推广链接落地**：报告内 Top10 商品展示真实淘宝客推广链接（`click_url`），一键复制或生成二维码，推荐可直接投放；
-- **钉钉日报推送**：每日报告完成后自动把选品/投放摘要推送到钉钉群（自定义机器人 Webhook，支持加签与自定义关键词 `DINGTALK_KEYWORD`），配置于 `.env` 的 `DINGTALK_WEBHOOK_URL`，后台可一键测试。
+- **钉钉日报推送**：每日报告完成后自动把选品/投放摘要推送到钉钉群（自定义机器人 Webhook，支持加签与自定义关键词 `DINGTALK_KEYWORD`），配置于 `.env` 的 `DINGTALK_WEBHOOK_URL`，后台可一键测试；
+- **客服待回复队列**：批量导入差评/私信 → 逐条或一键生成回复 → 标记已回复/忽略，贴近真实客服工作流；
+- **页面化设置**：定时任务、选品参数、钉钉开关可直接在后台修改（写回 `.env`，重启生效）。
 
 ## 快速开始
 ```bash
@@ -78,7 +80,7 @@ domestic_ecommerce_agent_taobao/
 │   ├── ad_optimization_agent.py
 │   └── customer_service_agent.py
 ├── retrieval/            # 向量库(可选) / 质量门控 / 自反馈闭环
-├── storage/              # 报告落库 + 商品库（SQLite：历史查询 / 趋势聚合 / 商品状态流转）
+├── storage/              # 报告落库 + 商品库 + 客服队列（SQLite：历史查询 / 趋势 / 商品与客服状态流转）
 ├── notify/               # 钉钉机器人日报推送（markdown + 可选加签）
 ├── utils/                # 翻译 / 日志 / 数据处理
 ├── api/app.py            # FastAPI 服务
@@ -109,6 +111,10 @@ notepad .env
 - `POST /api/v1/ad/optimize` 推广优化
 - `POST /api/v1/cs/review` 评论回复
 - `POST /api/v1/cs/message` 私信回复
+- `POST /api/v1/cs/queue` 客服队列批量导入（每行一条）
+- `GET /api/v1/cs/queue?status=` 客服队列列表（含统计）
+- `POST /api/v1/cs/queue/{id}/reply` 生成回复
+- `PATCH /api/v1/cs/queue/{id}` 更新状态（忽略等）
 - `GET /api/v1/loop/stats` 闭环统计
 - `GET /api/v1/dashboard/summary` 今日运营总览（今日报告+待办+趋势+知识库）
 - `GET /api/v1/products?status=&source=&q=` 商品库列表
@@ -117,6 +123,8 @@ notepad .env
 - `GET /api/v1/reports/{id}` 报告详情（含正文与 Top 商品推广链接）
 - `GET /api/v1/reports/trend?type=selection|ad` 趋势聚合
 - `POST /api/v1/notify/test` 钉钉推送测试
+- `GET /api/v1/settings` 读取运营设置（不含密钥）
+- `PUT /api/v1/settings` 保存运营设置（写 `.env`，重启生效）
 - `GET /api/v1/system/status` 系统状态（不含密钥）
 
 ## 合规与边界

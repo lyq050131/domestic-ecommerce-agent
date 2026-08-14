@@ -2,7 +2,7 @@
 import os
 import sys
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -23,6 +23,7 @@ from contextlib import asynccontextmanager
 from api.scheduler import daily_scheduler
 from storage.report_store import report_store
 from storage.product_store import product_store
+from storage.cs_queue import cs_queue
 from notify.dingtalk import dingtalk
 
 @asynccontextmanager
@@ -72,6 +73,30 @@ class MessageRequest(BaseModel):
 
 class ProductStatusRequest(BaseModel):
     status: str
+
+
+class CSQueueItem(BaseModel):
+    content: str
+    rating: Optional[int] = None
+
+
+class CSQueueRequest(BaseModel):
+    items: List[CSQueueItem]
+
+
+class CSQueueStatusRequest(BaseModel):
+    status: str
+
+
+class SettingsUpdateRequest(BaseModel):
+    auto_report_enabled: Optional[bool] = None
+    auto_report_time: Optional[str] = None
+    auto_report_category: Optional[str] = None
+    auto_report_count: Optional[int] = None
+    auto_report_ad_top_n: Optional[int] = None
+    dingtalk_enabled: Optional[bool] = None
+    dingtalk_webhook: Optional[str] = None
+    dingtalk_secret: Optional[str] = None
 
 
 @app.post("/api/v1/selection/analyze", summary="选品分析")
@@ -284,6 +309,108 @@ async def update_product_status(product_id: int, request: ProductStatusRequest):
     if not ok:
         raise HTTPException(status_code=404, detail="商品不存在")
     return {"code": 0, "message": "success", "data": {"id": product_id, "status": request.status}}
+
+
+@app.post("/api/v1/cs/queue", summary="客服队列批量导入")
+async def add_cs_queue(request: CSQueueRequest):
+    """批量导入差评/私信（单次最多 50 条），进入待处理队列"""
+    if not request.items:
+        raise HTTPException(status_code=400, detail="items 不能为空")
+    if len(request.items) > 50:
+        raise HTTPException(status_code=400, detail="单次最多导入 50 条")
+    n = cs_queue.add_many([{"content": it.content, "rating": it.rating} for it in request.items])
+    return {"code": 0, "message": "success", "data": {"added": n}}
+
+
+@app.get("/api/v1/cs/queue", summary="客服队列列表")
+async def list_cs_queue(status: Optional[str] = None, limit: int = 100):
+    try:
+        data = cs_queue.list(status, limit)
+        data["stats"] = cs_queue.stats()
+        return {"code": 0, "message": "success", "data": data}
+    except Exception as e:
+        logger.error(f"获取客服队列失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/cs/queue/{item_id}/reply", summary="生成客服回复")
+async def reply_cs_queue(item_id: int, language: str = "auto"):
+    item = cs_queue.get(item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="记录不存在")
+    try:
+        if item["rating"]:
+            result = customer_service_agent.handle_review(item["content"], item["rating"], language)
+        else:
+            result = customer_service_agent.handle_message(item["content"], language)
+        cs_queue.set_reply(item_id, result["reply"], result["detected_language"], result.get("matched_template"))
+        cs_queue.set_status(item_id, "已回复")
+        return {"code": 0, "message": "success", "data": {
+            "id": item_id, "reply": result["reply"],
+            "detected_language": result["detected_language"],
+            "matched_template": result.get("matched_template"),
+        }}
+    except Exception as e:
+        logger.error(f"生成客服回复失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.patch("/api/v1/cs/queue/{item_id}", summary="客服队列状态更新（忽略等）")
+async def update_cs_queue(item_id: int, request: CSQueueStatusRequest):
+    try:
+        ok = cs_queue.set_status(item_id, request.status)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    if not ok:
+        raise HTTPException(status_code=404, detail="记录不存在")
+    return {"code": 0, "message": "success", "data": {"id": item_id, "status": request.status}}
+
+
+@app.get("/api/v1/settings", summary="运营设置（不含密钥）")
+async def get_settings():
+    return {"code": 0, "message": "success", "data": {
+        "auto_report_enabled": settings.AUTO_REPORT_ENABLED,
+        "auto_report_time": settings.AUTO_REPORT_TIME,
+        "auto_report_category": settings.AUTO_REPORT_CATEGORY,
+        "auto_report_count": settings.AUTO_REPORT_COUNT,
+        "auto_report_ad_top_n": settings.AUTO_REPORT_AD_TOP_N,
+        "dingtalk_enabled": settings.DINGTALK_ENABLED,
+        "dingtalk_configured": dingtalk.configured,
+    }}
+
+
+@app.put("/api/v1/settings", summary="保存运营设置（写入 .env，重启后生效）")
+async def update_settings(request: SettingsUpdateRequest):
+    from dotenv import set_key
+    env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
+    mapping = {
+        "auto_report_enabled": "AUTO_REPORT_ENABLED",
+        "auto_report_time": "AUTO_REPORT_TIME",
+        "auto_report_category": "AUTO_REPORT_CATEGORY",
+        "auto_report_count": "AUTO_REPORT_COUNT",
+        "auto_report_ad_top_n": "AUTO_REPORT_AD_TOP_N",
+        "dingtalk_enabled": "DINGTALK_ENABLED",
+    }
+    updated = []
+    data = request.dict(exclude_none=True)
+    try:
+        for key, env_name in mapping.items():
+            if key in data:
+                set_key(env_path, env_name, str(data[key]))
+                updated.append(env_name)
+        if data.get("dingtalk_webhook") is not None and str(data["dingtalk_webhook"]).strip():
+            set_key(env_path, "DINGTALK_WEBHOOK_URL", str(data["dingtalk_webhook"]).strip())
+            updated.append("DINGTALK_WEBHOOK_URL")
+        if data.get("dingtalk_secret") is not None and str(data["dingtalk_secret"]).strip():
+            set_key(env_path, "DINGTALK_SECRET", str(data["dingtalk_secret"]).strip())
+            updated.append("DINGTALK_SECRET")
+    except Exception as e:
+        logger.error(f"保存设置失败: {e}")
+        raise HTTPException(status_code=500, detail=f"写入 .env 失败: {e}")
+    return {"code": 0, "message": "success", "data": {
+        "saved": True, "updated": updated, "restart_required": True,
+        "hint": "设置已写入 .env，重启服务后生效",
+    }}
 
 
 @app.post("/api/v1/notify/test", summary="钉钉推送测试")

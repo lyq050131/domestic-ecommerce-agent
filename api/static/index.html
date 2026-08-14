@@ -40,6 +40,13 @@ pre{background:#0d1117;color:#c9d1d9;border-radius:10px;padding:14px;overflow:au
 .btn-mini.active{background:var(--primary);color:#fff;border-color:var(--primary)}
 .btn-mini:hover{opacity:.9}
 .status-cell{min-width:176px}
+.cs-item{border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin:8px 0;background:#fff}
+.cs-item .q{font-size:14px;font-weight:600;margin-bottom:4px;word-break:break-word}
+.cs-item .a{background:#f6f8fa;border-radius:6px;padding:8px 10px;font-size:13px;color:var(--text);white-space:pre-wrap;margin-top:6px}
+.settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.settings-grid label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+.settings-grid input[type=text],.settings-grid input[type=number],.settings-grid input[type=time]{width:100%}
+.settings-grid input[type=checkbox]{width:auto;margin-right:6px}
 select{border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:14px;font-family:inherit;background:#fff}
 .prod-table{border-collapse:collapse;width:100%;font-size:13px;margin-top:4px}
 .prod-table th,.prod-table td{border:1px solid #d0d7de;padding:6px 8px;text-align:left;vertical-align:top}
@@ -163,6 +170,29 @@ h3{font-size:15px;margin:14px 0 6px}
   </section>
 
   <section class="card">
+    <h2>💬 客服待回复队列</h2>
+    <div class="row">
+      <label>状态
+        <select id="csQStatus">
+          <option value="">全部</option>
+          <option value="待处理">待处理</option>
+          <option value="已回复">已回复</option>
+          <option value="已忽略">已忽略</option>
+        </select>
+      </label>
+      <button id="btnCsQ">查询</button>
+      <button class="btn-sm" id="btnCsSample">填入示例</button>
+      <button class="btn-sm" id="btnCsReplyAll">⚡ 全部生成回复</button>
+    </div>
+    <label>批量导入（每行一条评论/私信，可含中文/英文）</label>
+    <textarea id="csBatch" placeholder="The product stopped working after 3 days. Very disappointed.&#10;客服不回复，物流也一直没更新。&#10;包装破损，充电器是坏的，差评。"></textarea>
+    <div class="row" style="margin-top:8px"><button class="btn-sm" id="btnCsImport">📥 导入到待办队列</button></div>
+    <div id="csQLoading" class="hidden loading">⏳ 正在加载…</div>
+    <div id="csQStats" class="muted" style="margin-bottom:8px"></div>
+    <div id="csQList"></div>
+  </section>
+
+  <section class="card">
     <h2>🔄 自反馈闭环统计</h2>
     <div class="row"><button id="btnLoop">刷新统计</button></div>
     <div id="loopLoading" class="hidden loading">⏳ 正在获取统计…</div>
@@ -235,6 +265,31 @@ h3{font-size:15px;margin:14px 0 6px}
     </div>
     <div id="notifyLoading" class="hidden loading">⏳ 正在发送测试消息…</div>
     <p class="muted">每日定时报告生成后，自动把选品/投放日报摘要推送到钉钉群。Webhook 在项目根目录 <code>.env</code> 的 <code>DINGTALK_WEBHOOK_URL</code> 配置（机器人安全设置若为“加签”，再加 <code>DINGTALK_SECRET</code>），保存后需重启服务生效。</p>
+  </section>
+
+  <section class="card">
+    <h2>⚙️ 运营设置</h2>
+    <div class="settings-grid" id="settingsBody">
+      <div>
+        <label><input type="checkbox" id="setAuto"> 每日定时任务</label>
+        <label>运行时刻 <input type="time" id="setTime"></label>
+        <label>选品品类 <input type="text" id="setCategory" placeholder="无线蓝牙耳机"></label>
+      </div>
+      <div>
+        <label>选品数量 <input type="number" id="setCount" min="1" max="100"></label>
+        <label>投放每词商品数 <input type="number" id="setTopN" min="1" max="100"></label>
+        <label><input type="checkbox" id="setDing"> 钉钉日报推送</label>
+      </div>
+      <div>
+        <label>钉钉 Webhook（留空=不修改；当前：<span id="setDingState">-</span>）<input type="text" id="setDingUrl" placeholder="https://oapi.dingtalk.com/robot/send?access_token=..."></label>
+        <label>钉钉加签密钥（留空=不修改）<input type="text" id="setDingSecret" placeholder="SEC..."></label>
+      </div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button id="btnSaveSettings">💾 保存设置</button>
+      <span class="muted">保存后需重启服务生效</span>
+    </div>
+    <div id="settingsMsg" class="muted"></div>
   </section>
 </main>
 <div id="toast"></div>
@@ -557,6 +612,109 @@ async function setProductStatus(id,status){
 $('btnProducts').onclick=()=>loadProducts();
 $('btnProductsReset').onclick=()=>{$('pStatus').value='';$('pSource').value='';$('pQ').value='';loadProducts();};
 $('btnGotoProducts').onclick=()=>$('productsCard').scrollIntoView({behavior:'smooth',block:'start'});
+const CS_STATUSES=['待处理','已回复','已忽略'];
+function csRowHtml(it){
+  const rating=it.rating?('｜ 评分 '+it.rating):'';
+  const lang=it.language?('｜ 语言 '+esc(it.language)):'';
+  const tmpl=it.matched_template?('｜ 模板：'+esc(it.matched_template)):'';
+  let ops='';
+  if(it.status==='待处理'){ops='<button class="btn-sm btn-reply" data-csid="'+it.id+'">✍️ 生成回复</button> <button class="btn-sm btn-ignore" data-csid="'+it.id+'">忽略</button>';}
+  else if(it.status==='已回复'){ops='<button class="btn-sm btn-reply" data-csid="'+it.id+'">🔄 重新生成</button>';}
+  return '<div class="cs-item">'
+    +'<div class="row" style="margin:0 0 4px"><span class="badge">'+it.status+'</span><span class="muted">#'+it.id+' '+esc(it.created_at)+rating+lang+tmpl+'</span></div>'
+    +'<div class="q">'+esc(it.content)+'</div>'
+    +(it.reply?'<div class="a">'+esc(it.reply)+'</div>':'<div class="muted">（尚未生成回复）</div>')
+    +'<div style="margin-top:6px">'+ops+'</div>'
+    +'</div>';
+}
+async function loadCsQueue(){
+  const status=$('csQStatus').value;
+  await run($('csQLoading'),$('btnCsQ'),async()=>{
+    const d=await api('/api/v1/cs/queue?limit=50&status='+encodeURIComponent(status),null);
+    const st=d.stats||{};
+    $('csQStats').innerHTML='共 '+d.total+' 条 ｜ '+CS_STATUSES.map(s=>'<span class="chip'+(s==='待处理'?' chip-hot':'')+'">'+s+' '+(st[s]||0)+'</span>').join(' ');
+    const box=$('csQList');
+    if(!d.items.length){box.innerHTML='<p class="muted">暂无记录 —— 用下方输入框导入差评/私信</p>';return;}
+    box.innerHTML=d.items.map(csRowHtml).join('');
+  });
+}
+async function importCs(){
+  const text=$('csBatch').value.trim();
+  if(!text){toast('❌ 请先输入内容');return;}
+  const items=text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(content=>({content:content}));
+  if(items.length>50){toast('❌ 单次最多 50 条');return;}
+  try{
+    const d=await api('/api/v1/cs/queue',{items:items});
+    toast('✅ 已导入 '+d.added+' 条到待办队列');
+    $('csBatch').value='';loadCsQueue();
+  }catch(e){toast('❌ '+e.message);}
+}
+function fillCsSample(){
+  $('csBatch').value='The product stopped working after 3 days. Very disappointed.\n客服完全不回复，物流也一直没更新。\nThe quality is great, definitely recommend!\n包装破损，充电器是坏的，差评。\nI received a wrong color, please help me exchange.';
+}
+async function replyCs(id){
+  try{
+    const d=await api('/api/v1/cs/queue/'+id+'/reply',{});
+    toast('✅ 已生成回复（#'+id+'，语言 '+d.detected_language+'）');
+    loadCsQueue();loadDashboard();
+  }catch(e){toast('❌ '+e.message);}
+}
+async function ignoreCs(id){
+  try{
+    await api('/api/v1/cs/queue/'+id,{status:'已忽略'},'PATCH');
+    toast('✅ 已忽略 #'+id);
+    loadCsQueue();
+  }catch(e){toast('❌ '+e.message);}
+}
+async function replyAllCs(){
+  let d;
+  try{d=await api('/api/v1/cs/queue?status='+encodeURIComponent('待处理')+'&limit=50',null);}catch(e){toast('❌ '+e.message);return;}
+  const pending=d.items||[];
+  if(!pending.length){toast('ℹ️ 没有待处理的记录');return;}
+  $('btnCsReplyAll').disabled=true;
+  try{
+    for(let i=0;i<pending.length;i++){
+      await api('/api/v1/cs/queue/'+pending[i].id+'/reply',{});
+    }
+    toast('✅ 全部生成完成：'+pending.length+' 条');
+  }catch(e){toast('❌ 生成中断：'+e.message);}
+  finally{$('btnCsReplyAll').disabled=false;loadCsQueue();loadDashboard();}
+}
+async function loadSettings(){
+  try{
+    const d=await api('/api/v1/settings',null);
+    $('setAuto').checked=d.auto_report_enabled;
+    $('setTime').value=d.auto_report_time;
+    $('setCategory').value=d.auto_report_category;
+    $('setCount').value=d.auto_report_count;
+    $('setTopN').value=d.auto_report_ad_top_n;
+    $('setDing').checked=d.dingtalk_enabled;
+    $('setDingState').textContent=d.dingtalk_configured?'✅ 已配置':'未配置';
+  }catch(e){toast('❌ 设置加载失败：'+e.message);}
+}
+async function saveSettings(){
+  const body={};
+  body.auto_report_enabled=$('setAuto').checked;
+  body.auto_report_time=$('setTime').value||undefined;
+  body.auto_report_category=$('setCategory').value.trim()||undefined;
+  body.auto_report_count=parseInt($('setCount').value)||20;
+  body.auto_report_ad_top_n=parseInt($('setTopN').value)||15;
+  body.dingtalk_enabled=$('setDing').checked;
+  const url=$('setDingUrl').value.trim(),sec=$('setDingSecret').value.trim();
+  if(url)body.dingtalk_webhook=url;
+  if(sec)body.dingtalk_secret=sec;
+  try{
+    const d=await api('/api/v1/settings',body,'PUT');
+    $('settingsMsg').textContent='✅ '+d.hint+'（已更新：'+d.updated.join(', ')+'）';
+    $('setDingUrl').value='';$('setDingSecret').value='';
+    toast('✅ 设置已保存，重启服务后生效');
+  }catch(e){toast('❌ '+e.message);}
+}
+$('btnCsQ').onclick=()=>loadCsQueue();
+$('btnCsImport').onclick=()=>importCs();
+$('btnCsSample').onclick=()=>fillCsSample();
+$('btnCsReplyAll').onclick=()=>replyAllCs();
+$('btnSaveSettings').onclick=()=>saveSettings();
 $('btnHist').onclick=()=>loadHistory();
 $('btnTrend').onclick=()=>loadTrend();
 $('histMdBtn').onclick=()=>exportMd('历史报告',histMd);
@@ -569,11 +727,17 @@ document.addEventListener('click',e=>{
   const q=e.target.closest('.btn-qr');
   if(q){openQr(q.getAttribute('data-url'));return;}
   const s=e.target.closest('.btn-mini[data-pid]');
-  if(s){setProductStatus(parseInt(s.getAttribute('data-pid')),s.getAttribute('data-status'));}
+  if(s){setProductStatus(parseInt(s.getAttribute('data-pid')),s.getAttribute('data-status'));return;}
+  const r=e.target.closest('.btn-reply');
+  if(r){replyCs(parseInt(r.getAttribute('data-csid')));return;}
+  const ig=e.target.closest('.btn-ignore');
+  if(ig){ignoreCs(parseInt(ig.getAttribute('data-csid')));}
 });
 api('/api/v1/system/status',null).then(setStatus).catch(e=>toast('❌ 状态获取失败：'+e.message));
 loadDashboard();
 loadProducts();
+loadCsQueue();
+loadSettings();
 </script>
 </body>
 </html>
