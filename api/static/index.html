@@ -54,6 +54,11 @@ pre{background:#0d1117;color:#c9d1d9;border-radius:10px;padding:14px;overflow:au
 .stage-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
 .stage-tab.done{border-color:var(--ok);color:var(--ok)}
 .stage-pager{display:flex;gap:10px;align-items:center;justify-content:center;margin:6px 0 2px}
+#loginOverlay{position:fixed;inset:0;background:rgba(31,35,40,.55);display:flex;align-items:center;justify-content:center;z-index:100}
+#loginOverlay.hidden{display:none}
+.login-card{background:#fff;border-radius:12px;padding:26px 30px;width:340px;box-shadow:0 8px 30px rgba(0,0,0,.18)}
+.login-card h2{margin:0 0 8px;font-size:17px}
+.login-card input{width:100%;margin:12px 0}
 .pager{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
 .pager-info{font-size:13px;color:var(--muted)}
 .pager select{border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-size:12px}
@@ -97,6 +102,7 @@ h3{font-size:15px;margin:14px 0 6px}
   <div id="statusBar">
     <span>版本：<span id="stVersion">-</span> ｜ 淘宝配置：<span id="stTbk">-</span> ｜ DeepSeek：<span id="stLLM">-</span> ｜ 每日定时：<span id="stAuto">-</span> ｜ 钉钉：<span id="stDing">-</span></span>
     <a href="/docs" target="_blank" style="color:#1f6feb">API 文档 /docs</a>
+    <button class="btn-sm" id="btnLogout" style="display:none">退出登录</button>
   </div>
 
   <div class="stage-nav" id="stageNav">
@@ -335,6 +341,15 @@ h3{font-size:15px;margin:14px 0 6px}
     <div id="settingsMsg" class="muted"></div>
   </section>
 </main>
+<div id="loginOverlay" class="hidden">
+  <div class="login-card">
+    <h2>🔐 运营后台登录</h2>
+    <p class="muted">本系统已开启访问令牌保护，请输入令牌后进入（令牌在项目根目录 .env 的 WEB_ACCESS_TOKEN）。</p>
+    <input type="password" id="loginToken" placeholder="访问令牌" autocomplete="off">
+    <button id="btnLogin" style="width:100%">登 录</button>
+    <div id="loginMsg" class="muted" style="margin-top:8px"></div>
+  </div>
+</div>
 <div id="toast"></div>
 <script>
 const $=id=>document.getElementById(id);
@@ -371,6 +386,34 @@ function showStage(idx,opts){
 $('stagePrev').onclick=()=>showStage(curStage-1);
 $('stageNext').onclick=()=>showStage(curStage+1);
 document.querySelectorAll('.stage-tab').forEach(t=>{t.onclick=()=>showStage(stageKey(t.getAttribute('data-stage')));});
+function showLogin(){
+  const ov=$('loginOverlay');
+  if(ov)ov.classList.remove('hidden');
+}
+function hideLogin(){$('loginOverlay').classList.add('hidden');}
+async function doLogin(){
+  const tok=$('loginToken').value.trim();
+  if(!tok){$('loginMsg').textContent='请输入访问令牌';return;}
+  try{
+    await api('/api/v1/auth/login',{token:tok});
+    localStorage.setItem('web_token',tok);
+    $('loginMsg').textContent='✅ 登录成功';
+    hideLogin();
+    location.reload();
+  }catch(e){$('loginMsg').textContent='❌ '+e.message;}
+}
+function bindLogin(){
+  const b=$('btnLogin');
+  if(b)b.onclick=doLogin;
+  const inp=$('loginToken');
+  if(inp)inp.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+  const lo=$('btnLogout');
+  if(lo){
+    lo.style.display=localStorage.getItem('web_token')?'inline-block':'none';
+    lo.onclick=()=>{localStorage.removeItem('web_token');location.reload();};
+  }
+}
+bindLogin();
 function inline(s){
   return s
     .replace(/`([^`]+)`/g,(m,c)=>'<code>'+esc(c)+'</code>')
@@ -511,8 +554,14 @@ function printReport(md){
 }
 async function api(url,body,method){
   const opt={method:method||(body?'POST':'GET'),headers:{'Content-Type':'application/json'}};
+  const tkn=localStorage.getItem('web_token');
+  if(tkn)opt.headers['Authorization']='Bearer '+tkn;
   if(body)opt.body=JSON.stringify(body);
   const r=await fetch(url,opt);
+  if(r.status===401&&url.indexOf('/api/v1/auth/')!==0){
+    showLogin();
+    throw new Error('请先登录');
+  }
   const j=await r.json().catch(()=>({detail:r.statusText}));
   if(!r.ok)throw new Error((j.detail||r.statusText)+'');
   if(j.code!==0)throw new Error(j.message||'unknown error');
@@ -892,7 +941,7 @@ document.addEventListener('change',e=>{
   if(e.target.classList&&e.target.classList.contains('lpg-limit')){const key=e.target.getAttribute('data-key');const st=launchPg[key];if(st){st.limit=parseInt(e.target.value)||10;st.page=1;renderLaunchLinks($('alLinks'),[],launchData);}}
 });
 showStage(0,{scroll:false});
-api('/api/v1/system/status',null).then(setStatus).catch(e=>toast('❌ 状态获取失败：'+e.message));
+api('/api/v1/system/status',null).then(setStatus).catch(e=>{if(!$('loginOverlay')||$('loginOverlay').classList.contains('hidden'))toast('❌ 状态获取失败：'+e.message);});
 loadDashboard();
 loadProducts();
 loadCsQueue();

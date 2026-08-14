@@ -25,7 +25,7 @@ class VectorStore:
         self.available = False
         self.client = None
         self.embedding_function = None
-        if CHROMA_AVAILABLE:
+        if CHROMA_AVAILABLE and settings.EMBEDDING_ENABLED:
             try:
                 self.embedding_function = embedding_functions.SentenceTransformerEmbeddingFunction(
                     model_name=settings.EMBEDDING_MODEL,
@@ -38,8 +38,10 @@ class VectorStore:
                 return
             except Exception as e:
                 logger.warning(f"向量库初始化失败，降级为无 RAG 模式: {e}")
-        else:
+        elif not CHROMA_AVAILABLE:
             logger.info("未安装 chromadb，降级为无 RAG 模式（检索返回空，业务不受影响）")
+        else:
+            logger.info("EMBEDDING_ENABLED=false，已跳过向量库加载（无 RAG 模式）")
 
     def _empty_result(self) -> Dict:
         return {"documents": [[]], "metadatas": [[]], "distances": [[]], "ids": [[]]}

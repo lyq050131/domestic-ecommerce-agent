@@ -54,6 +54,12 @@ python main.py
 uvicorn api.app:app --reload
 # 浏览器打开 http://127.0.0.1:8000/ 使用运营后台；http://127.0.0.1:8000/docs 查看接口文档
 # Windows 一键：start_api.bat 启动 / stop_api.bat 停止
+
+# 5. （可选）Web 后台访问令牌：.env 填 WEB_ACCESS_TOKEN=你的令牌 后，
+#    打开后台需先登录，API 需带 Authorization: Bearer <令牌>（留空=本机直连不鉴权）
+# 6. 运行测试（冒烟：配置/签名/存储/API mock）
+pip install -r requirements-dev.txt
+pytest
 ```
 
 ## 淘宝接入资质（必做）

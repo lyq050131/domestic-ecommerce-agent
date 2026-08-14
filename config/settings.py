@@ -32,6 +32,7 @@ class Settings:
     TAOBAO_ACCESS_TOKEN: str = os.getenv("TAOBAO_ACCESS_TOKEN", "")
 
     # ===== Embedding 配置（本地免费，可选） =====
+    EMBEDDING_ENABLED: bool = os.getenv("EMBEDDING_ENABLED", "true").lower() == "true"
     EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-zh-v1.5")
     EMBEDDING_DEVICE: str = os.getenv("EMBEDDING_DEVICE", "cpu")
 
@@ -66,6 +67,11 @@ class Settings:
     DINGTALK_WEBHOOK_URL: str = os.getenv("DINGTALK_WEBHOOK_URL", "")      # 钉钉自定义机器人 Webhook 地址
     DINGTALK_SECRET: str = os.getenv("DINGTALK_SECRET", "")                 # 机器人加签密钥（未启用加签可留空）
     DINGTALK_KEYWORD: str = os.getenv("DINGTALK_KEYWORD", "运营")           # 机器人「自定义关键词」安全设置的关键词，推送会自动带上
+
+    # ===== Web 后台访问令牌（可选） =====
+    # 留空=本机直连不鉴权；配置后 Web 后台需登录，API 需带 Authorization: Bearer <令牌>
+    WEB_ACCESS_TOKEN: str = os.getenv("WEB_ACCESS_TOKEN", "")
+    VERSION: str = "3.1.0"
 
     @property
     def taobao_configured(self) -> bool:
