@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 
 from config.settings import settings
+from storage.product_store import product_store
 from utils.logger import logger
 
 REPORT_DB_DIR = os.path.dirname(os.path.abspath(settings.REPORT_DB_PATH)) or "."
@@ -121,6 +122,7 @@ class ReportStore:
                 "total_coupon": round(float(df["coupon_amount"].sum()), 2) if "coupon_amount" in df.columns else 0,
             }
         summary["top_products"] = top_products
+        product_store.upsert_many("selection", top_products, category=result.get("category") or "")
         if params is None:
             params = {
                 "category": result.get("category"),
@@ -160,6 +162,7 @@ class ReportStore:
             "total_estimated_commission": round(float(promo.get("total_estimated_commission", 0) or 0), 2),
         }
         summary["top_products"] = top_products
+        product_store.upsert_many("ad", top_products)
         if params is None:
             params = {
                 "keywords": result.get("request_keywords"),
@@ -200,6 +203,21 @@ class ReportStore:
             if not row:
                 return None
             return dict(row, summary=_parse_summary(row["summary"]), params=_parse_summary(row["params"]))
+        finally:
+            conn.close()
+
+    def latest_by_date(self, report_type: str, date: str) -> Optional[dict]:
+        """某类型某天最近一条报告（不含正文）"""
+        conn = self._connect()
+        try:
+            row = conn.execute(
+                "SELECT id, report_type, title, summary, created_at FROM reports "
+                "WHERE report_type=? AND created_at LIKE ? ORDER BY id DESC LIMIT 1",
+                (report_type, date + "%"),
+            ).fetchone()
+            if not row:
+                return None
+            return dict(row, summary=_parse_summary(row["summary"]))
         finally:
             conn.close()
 

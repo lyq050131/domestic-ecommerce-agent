@@ -1,6 +1,7 @@
 """国内电商店铺自动化运营智能体 v3.1 - FastAPI 服务（真实店铺运营版）"""
 import os
 import sys
+from datetime import datetime
 from typing import Optional
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -21,6 +22,7 @@ from contextlib import asynccontextmanager
 
 from api.scheduler import daily_scheduler
 from storage.report_store import report_store
+from storage.product_store import product_store
 from notify.dingtalk import dingtalk
 
 @asynccontextmanager
@@ -66,6 +68,10 @@ class ReviewRequest(BaseModel):
 class MessageRequest(BaseModel):
     content: str
     language: Optional[str] = "auto"
+
+
+class ProductStatusRequest(BaseModel):
+    status: str
 
 
 @app.post("/api/v1/selection/analyze", summary="选品分析")
@@ -225,6 +231,59 @@ async def system_status():
             "dingtalk_configured": dingtalk.configured,
         },
     }
+
+
+@app.get("/api/v1/dashboard/summary", summary="今日运营总览")
+async def dashboard_summary():
+    """总览：今日报告摘要 + 商品库待办 + 近7天趋势 + 闭环统计"""
+    try:
+        today = datetime.now().strftime("%Y-%m-%d")
+        return {
+            "code": 0, "message": "success",
+            "data": {
+                "today": {
+                    "selection": report_store.latest_by_date("selection", today),
+                    "ad": report_store.latest_by_date("ad", today),
+                },
+                "products_stats": product_store.stats(),
+                "trend": {
+                    "selection": report_store.trend("selection", 7),
+                    "ad": report_store.trend("ad", 7),
+                },
+                "loop_stats": mobius_loop.get_loop_stats(),
+            },
+        }
+    except Exception as e:
+        logger.error(f"获取运营总览失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v1/products", summary="商品库列表")
+async def list_products(
+    status: Optional[str] = None,
+    source: Optional[str] = None,
+    q: Optional[str] = None,
+    limit: int = 100,
+    offset: int = 0,
+):
+    try:
+        data = product_store.list_products(status, source, q, limit, offset)
+        data["stats"] = product_store.stats()
+        return {"code": 0, "message": "success", "data": data}
+    except Exception as e:
+        logger.error(f"获取商品库失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.patch("/api/v1/products/{product_id}", summary="更新商品状态")
+async def update_product_status(product_id: int, request: ProductStatusRequest):
+    try:
+        ok = product_store.set_status(product_id, request.status)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    if not ok:
+        raise HTTPException(status_code=404, detail="商品不存在")
+    return {"code": 0, "message": "success", "data": {"id": product_id, "status": request.status}}
 
 
 @app.post("/api/v1/notify/test", summary="钉钉推送测试")

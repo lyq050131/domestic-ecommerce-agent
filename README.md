@@ -26,6 +26,8 @@
 - **多语言客服 Agent**：预置 FAQ 模板锁定业务口径，DeepSeek 结合评论/私信细节个性化回复；
 - **自反馈闭环**：质量门控 → 去重 → 向量回流 → 容量控制（可选 RAG，未装依赖自动跳过）；
 - **报告落库 + 历史趋势**：选品/投放报告自动写入 SQLite（`data/reports.db`），后台可查历史报告与近 30 天关键指标趋势图；
+- **今日运营总览**：打开后台即见今日选品/投放摘要、商品库待办与近 7 天趋势，不用先点按钮等报告；
+- **商品库与状态流转**：推荐商品自动沉淀为商品池，支持标记「待投放 / 已投放 / 效果待观察 / 已排除」，让推荐可跟踪、可复盘；
 - **每日定时任务**：API 启动后自动调度，每天固定时刻（默认 09:30）自动运行选品+投放分析并落库，实现无人值守日度运营；
 - **推广链接落地**：报告内 Top10 商品展示真实淘宝客推广链接（`click_url`），一键复制或生成二维码，推荐可直接投放；
 - **钉钉日报推送**：每日报告完成后自动把选品/投放摘要推送到钉钉群（自定义机器人 Webhook，支持加签与自定义关键词 `DINGTALK_KEYWORD`），配置于 `.env` 的 `DINGTALK_WEBHOOK_URL`，后台可一键测试。
@@ -76,7 +78,7 @@ domestic_ecommerce_agent_taobao/
 │   ├── ad_optimization_agent.py
 │   └── customer_service_agent.py
 ├── retrieval/            # 向量库(可选) / 质量门控 / 自反馈闭环
-├── storage/              # 报告落库（SQLite：历史查询 + 趋势聚合）
+├── storage/              # 报告落库 + 商品库（SQLite：历史查询 / 趋势聚合 / 商品状态流转）
 ├── notify/               # 钉钉机器人日报推送（markdown + 可选加签）
 ├── utils/                # 翻译 / 日志 / 数据处理
 ├── api/app.py            # FastAPI 服务
@@ -108,6 +110,9 @@ notepad .env
 - `POST /api/v1/cs/review` 评论回复
 - `POST /api/v1/cs/message` 私信回复
 - `GET /api/v1/loop/stats` 闭环统计
+- `GET /api/v1/dashboard/summary` 今日运营总览（今日报告+待办+趋势+知识库）
+- `GET /api/v1/products?status=&source=&q=` 商品库列表
+- `PATCH /api/v1/products/{id}` 更新商品状态（待投放/已投放/已排除/效果待观察）
 - `GET /api/v1/reports?type=selection|ad` 历史报告列表
 - `GET /api/v1/reports/{id}` 报告详情（含正文与 Top 商品推广链接）
 - `GET /api/v1/reports/trend?type=selection|ad` 趋势聚合
