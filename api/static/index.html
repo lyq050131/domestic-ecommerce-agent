@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>国内电商店铺自动化运营智能体 · 运营后台</title>
+<style>
+:root{--bg:#f5f7fa;--card:#fff;--border:#e3e8ef;--text:#1f2328;--muted:#57606a;--primary:#1f6feb;--ok:#1a7f37}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;background:var(--bg);color:var(--text)}
+header{background:linear-gradient(90deg,#1f6feb,#8250df);color:#fff;padding:18px 28px}
+header h1{margin:0;font-size:20px}
+header p{margin:4px 0 0;font-size:13px;opacity:.85}
+main{max-width:1100px;margin:24px auto;padding:0 20px;display:grid;gap:18px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px}
+.card h2{margin:0 0 12px;font-size:16px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+label{font-size:13px;color:var(--muted);display:inline-flex;align-items:center;gap:6px}
+input[type=text],input[type=number],textarea{border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:14px;font-family:inherit}
+textarea{width:100%;min-height:70px;resize:vertical}
+button{background:var(--primary);color:#fff;border:0;border-radius:8px;padding:9px 18px;font-size:14px;cursor:pointer}
+button:hover{opacity:.9}
+button:disabled{opacity:.5;cursor:not-allowed}
+pre{background:#0d1117;color:#c9d1d9;border-radius:10px;padding:14px;overflow:auto;white-space:pre-wrap;word-break:break-word;font-size:13px;line-height:1.6;max-height:560px}
+.hidden{display:none}
+#statusBar{display:flex;gap:18px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+#toast{position:fixed;top:16px;right:16px;background:#1f2328;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;display:none;max-width:420px;z-index:99}
+.loading{color:#0969da;font-size:14px;margin:8px 0}
+</style>
+</head>
+<body>
+<header>
+  <h1>国内电商店铺自动化运营智能体 · 运营后台</h1>
+  <p>数据源：淘宝客真实 API ｜ LLM：DeepSeek ｜ 自反馈闭环（RAG + 质量门控 + 向量回流）</p>
+</header>
+<main>
+  <div id="statusBar">
+    <span>版本：<span id="stVersion">-</span> ｜ 淘宝配置：<span id="stTbk">-</span> ｜ DeepSeek：<span id="stLLM">-</span></span>
+    <a href="/docs" target="_blank" style="color:#1f6feb">API 文档 /docs</a>
+  </div>
+
+  <section class="card">
+    <h2>📦 选品分析</h2>
+    <div class="row">
+      <label>品类 <input type="text" id="selCategory" value="无线蓝牙耳机"></label>
+      <label>数量 <input type="number" id="selCount" value="20" min="1" max="100" style="width:80px"></label>
+      <button id="btnSel">开始分析（约1-2分钟）</button>
+    </div>
+    <div id="selLoading" class="hidden loading">⏳ 正在抓取淘宝真实数据并生成报告，请稍候…</div>
+    <pre id="selReport" class="hidden"></pre>
+  </section>
+
+  <section class="card">
+    <h2>📈 投放优化</h2>
+    <div class="row">
+      <label>每词商品数 <input type="number" id="adTopN" value="15" min="1" max="100" style="width:80px"></label>
+      <button id="btnAd">开始优化（约1分钟）</button>
+    </div>
+    <div id="adLoading" class="hidden loading">⏳ 正在抓取 10 个关键词真实数据并生成方案…</div>
+    <pre id="adReport" class="hidden"></pre>
+  </section>
+
+  <section class="card">
+    <h2>💬 多语言客服</h2>
+    <div class="row">
+      <label>内容 <input type="text" id="csContent" style="width:380px" placeholder="输入评论或私信内容"></label>
+      <label>评分(1-5) <input type="number" id="csRating" min="1" max="5" style="width:70px" placeholder="留空=私信"></label>
+      <button id="btnCs">生成回复</button>
+    </div>
+    <div id="csLoading" class="hidden loading">⏳ 正在生成回复…</div>
+    <pre id="csReport" class="hidden"></pre>
+  </section>
+
+  <section class="card">
+    <h2>🔄 自反馈闭环统计</h2>
+    <div class="row"><button id="btnLoop">刷新统计</button></div>
+    <div id="loopLoading" class="hidden loading">⏳ 正在获取统计…</div>
+    <pre id="loopReport" class="hidden"></pre>
+  </section>
+</main>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+function toast(msg){const t=$('toast');t.textContent=msg;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',6000);}
+function show(pre,text){pre.textContent=text;pre.classList.remove('hidden');}
+async function api(url,body){
+  const opt={method:body?'POST':'GET',headers:{'Content-Type':'application/json'}};
+  if(body)opt.body=JSON.stringify(body);
+  const r=await fetch(url,opt);
+  const j=await r.json().catch(()=>({detail:r.statusText}));
+  if(!r.ok)throw new Error((j.detail||r.statusText)+'');
+  if(j.code!==0)throw new Error(j.message||'unknown error');
+  return j.data;
+}
+function setStatus(s){
+  $('stVersion').textContent=s.version;
+  $('stTbk').textContent=s.taobao_configured?'✅ 已配置':'❌ 未配置';
+  $('stLLM').textContent=s.llm_configured?'✅ 已配置':'❌ 未配置';
+}
+async function run(id,loading,btn,fn){
+  loading.classList.remove('hidden');btn.disabled=true;try{await fn();}catch(e){toast('❌ '+e.message);}finally{loading.classList.add('hidden');btn.disabled=false;}
+}
+$('btnSel').onclick=()=>run($('selLoading'),$('selLoading'),$('btnSel'),async()=>{
+  const d=await api('/api/v1/selection/analyze',{category:$('selCategory').value.trim()||'无线蓝牙耳机',count:parseInt($('selCount').value)||20});
+  $('selReport').classList.remove('hidden');
+  show($('selReport'),`【品类】${d.category}（真实数据 ${d.competitor_count} 款）｜闭环入库：${d.feedback_success?'✅ 成功':'未入库'}\n\n${d.report}`);
+});
+$('btnAd').onclick=()=>run($('adLoading'),$('adLoading'),$('btnAd'),async()=>{
+  const d=await api('/api/v1/ad/optimize',{top_n:parseInt($('adTopN').value)||15});
+  const s=d.promotion_summary||{};
+  const head=`【推广数据】${s.total??'-'} 款商品 ｜ 平均佣金 ${s.avg_commission??'-'}% ｜ 累计预估佣金 ¥${s.total_estimated_commission??'-'}\n\n`;
+  show($('adReport'),head+d.strategy);
+});
+$('btnCs').onclick=()=>run($('csLoading'),$('csLoading'),$('btnCs'),async()=>{
+  const content=$('csContent').value.trim();
+  if(!content){toast('❌ 请先输入评论/私信内容');return;}
+  const rating=parseInt($('csRating').value);
+  const d=rating?await api('/api/v1/cs/review',{content,rating}):await api('/api/v1/cs/message',{content});
+  show($('csReport'),`【语言】${d.detected_language} ｜ 命中模板：${d.matched_template||'无'} ｜ 闭环：${d.feedback_success?'✅':'-'}\n\n回复内容：\n${d.reply}`);
+});
+$('btnLoop').onclick=()=>run($('loopLoading'),$('loopLoading'),$('btnLoop'),async()=>{
+  const d=await api('/api/v1/loop/stats',null);
+  show($('loopReport'),JSON.stringify(d,null,2));
+});
+api('/api/v1/system/status',null).then(setStatus).catch(e=>toast('❌ 状态获取失败：'+e.message));
+</script>
+</body>
+</html>

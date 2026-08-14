@@ -5,7 +5,10 @@ from typing import Optional
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from pathlib import Path
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from config.settings import settings
@@ -20,6 +23,9 @@ app = FastAPI(
     description="接入真实淘宝平台（淘宝客 API）+ DeepSeek 大模型的电商运营智能体（v3.1 真实店铺运营版）",
     version="3.1.0",
 )
+
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
 class ProductSelectionRequest(BaseModel):
@@ -158,13 +164,6 @@ async def health_check():
     return {"status": "healthy", "version": "3.1.0"}
 
 
-@app.get("/", summary="首页")
+@app.get("/", summary="运营后台首页", include_in_schema=False)
 async def root():
-    return {
-        "name": "国内电商店铺自动化运营智能体",
-        "version": "3.1.0",
-        "core_idea": "真实淘宝数据 + DeepSeek 大模型 + 自反馈闭环（RAG + 质量门控 + 向量回流）",
-        "modules": ["选品Agent", "投放优化Agent", "多语言客服Agent", "数据闭环系统"],
-        "docs": "/docs",
-        "status": "/api/v1/system/status",
-    }
+    return FileResponse(str(STATIC_DIR / "index.html"))

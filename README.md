@@ -30,11 +30,14 @@ copy .env.example .env    # Windows
 # cp .env.example .env     # Linux/macOS
 # 填写：TAOBAO_APP_KEY / TAOBAO_APP_SECRET / TAOBAO_ADZONE_ID / LLM_API_KEY
 
-# 3. 运行（交互式）
+# 3. 运行（交互式命令行）
 python main.py
+# 或 Windows 双击 start.bat
 
-# 4. 运行 API 服务
+# 4. 运行 API 服务 + Web 运营后台
 uvicorn api.app:app --reload
+# 浏览器打开 http://127.0.0.1:8000/ 使用运营后台；http://127.0.0.1:8000/docs 查看接口文档
+# Windows 一键：start_api.bat 启动 / stop_api.bat 停止
 ```
 
 ## 淘宝接入资质（必做）
