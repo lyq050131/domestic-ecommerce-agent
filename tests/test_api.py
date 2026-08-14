@@ -1,9 +1,15 @@
 # -*- coding: utf-8 -*-
+import time
+
 import pytest
 from fastapi.testclient import TestClient
 
 import api.app as app_module
+from agents.ad_optimization_agent import ad_optimization_agent
+from agents.product_selection_agent import product_selection_agent
 from api.app import app
+from notify.dingtalk import dingtalk
+from storage.report_store import report_store
 
 
 @pytest.fixture
@@ -37,11 +43,11 @@ def client(monkeypatch):
         return 1002, {"top_products": [
             {"product_id": "p2", "product_name": "商品2", "item_url": "http://x/2", "promotion_score": 90}]}
 
-    monkeypatch.setattr(app_module.product_selection_agent, "analyze_category", fake_analyze)
-    monkeypatch.setattr(app_module.ad_optimization_agent, "optimize_campaigns", fake_optimize)
-    monkeypatch.setattr(app_module.report_store, "save_selection_report", fake_save_selection)
-    monkeypatch.setattr(app_module.report_store, "save_ad_report", fake_save_ad)
-    monkeypatch.setattr(app_module.dingtalk, "send_launch_links", lambda *a, **k: False)
+    monkeypatch.setattr(product_selection_agent, "analyze_category", fake_analyze)
+    monkeypatch.setattr(ad_optimization_agent, "optimize_campaigns", fake_optimize)
+    monkeypatch.setattr(report_store, "save_selection_report", fake_save_selection)
+    monkeypatch.setattr(report_store, "save_ad_report", fake_save_ad)
+    monkeypatch.setattr(dingtalk, "send_launch_links", lambda *a, **k: False)
     with TestClient(app) as c:
         yield c
 
@@ -89,6 +95,30 @@ def test_auto_launch_links_by_source(client):
     d = r.json()["data"]
     assert d["link_count"] >= 1
     assert "选品" in d["links_by_source"] and "投放" in d["links_by_source"]
+
+
+def test_auto_launch_async_task_flow(client):
+    r = client.post("/api/v1/auto/launch/async", json={"category": "耳机", "top_n": 5, "push_dingtalk": False})
+    assert r.status_code == 200
+    tid = r.json()["data"]["task_id"]
+    assert tid
+    result = None
+    for _ in range(50):
+        t = client.get("/api/v1/tasks/" + tid).json()["data"]
+        if t["status"] in ("success", "failed"):
+            result = t
+            break
+        time.sleep(0.1)
+    assert result is not None
+    assert result["status"] == "success"
+    assert result["result"]["link_count"] >= 1
+    assert "选品" in result["result"]["links_by_source"]
+
+
+def test_task_not_found(client):
+    r = client.get("/api/v1/tasks/not-exist-id")
+    assert r.status_code == 404
+    assert r.json()["code"] == 404
 
 
 def test_products_list_shape(client):

@@ -803,13 +803,30 @@ $('btnAutoLaunch').onclick=()=>run($('alLoading'),$('btnAutoLaunch'),async()=>{
   if(cat)body.category=cat;
   body.top_n=parseInt($('alTopN').value)||10;
   body.push_dingtalk=$('alDing').checked;
-  const d=await api('/api/v1/auto/launch',body);
-  $('alSummary').textContent='品类 '+d.category+' ｜ 选品报告 #'+d.report_ids.selection+' ｜ 投放报告 #'+d.report_ids.ad+' ｜ 链接 '+d.link_count+' 条 ｜ 钉钉推送：'+(d.dingtalk_sent?'✅ 已发送':'未发送/未开启');
-  launchPg['选品']={page:1,limit:10,total:0};launchPg['投放']={page:1,limit:10,total:0};
-  renderLaunchLinks($('alLinks'),d.links||[],d.links_by_source||{});
-  markStageDone('launch');
-  $('alResult').classList.remove('hidden');
-  loadDashboard();loadProducts();
+  const origLoading=$('alLoading').textContent;
+  const d=await api('/api/v1/auto/launch/async',body);
+  const tid=d.task_id;
+  for(let i=0;i<120;i++){
+    await new Promise(r=>setTimeout(r,2000));
+    const st=await api('/api/v1/tasks/'+tid,null);
+    if(st.status==='running'){ $('alLoading').textContent='⏳ '+st.progress+'（任务 #'+tid+'）…'; }
+    else if(st.status==='success'){
+      $('alLoading').textContent=origLoading;
+      const dd=st.result;
+      $('alSummary').textContent='品类 '+dd.category+' ｜ 选品报告 #'+dd.report_ids.selection+' ｜ 投放报告 #'+dd.report_ids.ad+' ｜ 链接 '+dd.link_count+' 条 ｜ 钉钉推送：'+(dd.dingtalk_sent?'✅ 已发送':'未发送/未开启');
+      launchPg['选品']={page:1,limit:10,total:0};launchPg['投放']={page:1,limit:10,total:0};
+      renderLaunchLinks($('alLinks'),dd.links||[],dd.links_by_source||{});
+      markStageDone('launch');
+      $('alResult').classList.remove('hidden');
+      loadDashboard();loadProducts();
+      return;
+    }else{
+      $('alLoading').textContent=origLoading;
+      throw new Error(st.error||'任务失败');
+    }
+  }
+  $('alLoading').textContent=origLoading;
+  throw new Error('任务超时（超过4分钟）');
 });
 const CS_STATUSES=['待处理','已回复','已忽略'];
 function csRowHtml(it){
